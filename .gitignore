@@ -1,1 +1,5 @@
-.idea
+node_modules
+.pnpm-store
+packages/*/dist
+.DS_Store
+coverage
