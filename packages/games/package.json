@@ -3,9 +3,14 @@
   "version": "0.0.0",
   "type": "module",
   "private": true,
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "files": ["src", "dist"],
+  "exports": {
+    ".": "./src/index.ts",
+    "./duel-snake/react": "./src/duel-snake/react.tsx",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "tsc -p tsconfig.json --noEmit",
@@ -13,9 +18,17 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@pvp-games/shared": "workspace:^"
+    "@pvp-games/shared": "workspace:^",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.4.1",
+    "@testing-library/react": "^14.3.1",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/react": "^19.2.6",
+    "@types/react-dom": "^19.2.3",
+    "jsdom": "^24.1.1",
     "typescript": "^5.4.5",
     "vitest": "^1.6.0"
   }

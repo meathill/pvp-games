@@ -1,6 +1,6 @@
 import { createSharedContext } from '@pvp-games/shared';
 import type { SharedContext } from '@pvp-games/shared';
-import { DuelSnakeGame } from './duel-snake';
+import { DuelSnakeGame } from './duel-snake/engine';
 
 export interface GameSummary {
   id: string;
@@ -18,7 +18,23 @@ const duelSnakeSummary: GameSummary = {
   shared: createSharedContext({ project: 'pvp-games' })
 };
 
-const placeholderGames: GameSummary[] = [duelSnakeSummary];
+const skyPongSummary: GameSummary = {
+  id: 'sky-pong',
+  title: 'Sky Pong (Online soon)',
+  description: '云端对战的空战乒乓，计划支持匹配与观战。',
+  tags: ['online', 'ranked'],
+  shared: createSharedContext({ project: 'pvp-games' })
+};
+
+const gridRushSummary: GameSummary = {
+  id: 'grid-rush',
+  title: 'Grid Rush (Co-op)',
+  description: '合作解锁格子的街机闯关，适合直播互动与局域网。',
+  tags: ['co-op', 'arcade'],
+  shared: createSharedContext({ project: 'pvp-games' })
+};
+
+const placeholderGames: GameSummary[] = [duelSnakeSummary, skyPongSummary, gridRushSummary];
 
 export function listAvailableGames(): string[] {
   return placeholderGames.map((game) => game.id);
@@ -29,4 +45,5 @@ export function getGameSummaries(): GameSummary[] {
 }
 
 export { DuelSnakeGame };
-export type { Direction, DuelSnakeState, PlayerId } from './duel-snake';
+export { DuelSnakeExperience } from './duel-snake/react';
+export type { Direction, DuelSnakeState, PlayerId } from './duel-snake/engine';
