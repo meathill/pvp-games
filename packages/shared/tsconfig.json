@@ -5,6 +5,7 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src", "tests"],
+  "include": ["src"],
+  "exclude": ["tests", "vitest.config.ts"],
   "references": []
 }
