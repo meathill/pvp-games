@@ -9,7 +9,8 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
     dir: 'src',
     environmentMatchGlobs: [
-      ['**/vite-config.test.ts', 'node']
+      ['**/vite-config.test.ts', 'node'],
+      ['**/tailwind-config.test.ts', 'node']
     ],
     coverage: {
       reporter: ['text', 'json', 'html']
