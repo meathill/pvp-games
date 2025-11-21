@@ -1,6 +1,9 @@
+'use client';
+
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Direction, DuelSnakeState, PlayerId } from '@pvp-games/games';
-import { DuelSnakeGame } from '@pvp-games/games';
+
+import type { Direction, DuelSnakeState, PlayerId } from './engine';
+import { DuelSnakeGame } from './engine';
 
 const KEY_BINDINGS: Record<string, { player: PlayerId; direction: Direction }> = {
   arrowup: { player: 'p1', direction: 'up' },
@@ -15,20 +18,25 @@ const KEY_BINDINGS: Record<string, { player: PlayerId; direction: Direction }> =
 
 const CELL_SIZE = 18;
 const CELL_GAP = 2;
-const SLOWER_TICK_MS = Math.round(140 / 0.75);
+const DEFAULT_TICK_MS = Math.round(140 / 0.75);
 
 type ThemeMode = 'light' | 'dark' | 'system';
-
 type ClassValue = string | false | null | undefined;
+
+export interface DuelSnakeExperienceProps {
+  initialSeed?: string;
+  initialTheme?: ThemeMode;
+  tickIntervalMs?: number;
+}
 
 function classNames(...values: ClassValue[]): string {
   return values.filter(Boolean).join(' ');
 }
 
-function createGame(seed?: string) {
+function createGame(seed?: string, tickIntervalMs?: number) {
   return new DuelSnakeGame({
     seed,
-    tickIntervalMs: SLOWER_TICK_MS
+    tickIntervalMs: tickIntervalMs ?? DEFAULT_TICK_MS
   });
 }
 
@@ -91,10 +99,14 @@ function useTheme(initialMode: ThemeMode = 'light') {
   return { mode, setMode, resolvedTheme } as const;
 }
 
-export function App() {
-  const [game, setGame] = useState(() => createGame());
+export function DuelSnakeExperience({
+  initialSeed,
+  initialTheme = 'light',
+  tickIntervalMs
+}: DuelSnakeExperienceProps) {
+  const [game, setGame] = useState(() => createGame(initialSeed, tickIntervalMs));
   const [state, setState] = useState<DuelSnakeState>(() => game.getState());
-  const { mode: themeMode, setMode: setThemeMode, resolvedTheme } = useTheme('light');
+  const { mode: themeMode, setMode: setThemeMode, resolvedTheme } = useTheme(initialTheme);
 
   useGameLoop(game, setState, state.tickIntervalMs);
 
@@ -131,7 +143,7 @@ export function App() {
   };
 
   const reset = () => {
-    const next = createGame(`${Date.now()}`);
+    const next = createGame(`${Date.now()}`, tickIntervalMs);
     setGame(next);
     setState(next.getState());
   };
@@ -257,6 +269,7 @@ export function App() {
               return (
                 <div
                   key={key}
+                  role="presentation"
                   className={classNames('h-[18px] w-[18px] rounded-sm transition-colors duration-150', fillClass)}
                   aria-label={`cell-${x}-${y}`}
                 />
@@ -269,4 +282,4 @@ export function App() {
   );
 }
 
-export default App;
+export default DuelSnakeExperience;

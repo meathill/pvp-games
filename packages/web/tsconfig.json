@@ -1,19 +1,42 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "composite": true,
-    "rootDir": ".",
-    "outDir": "dist/types",
-    "jsx": "react-jsx",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "noEmit": true,
+    "jsx": "preserve",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "paths": {
-      "@pvp-games/games": ["../games/src/index.ts"],
-      "@pvp-games/games/*": ["../games/src/*"]
-    }
+      "@pvp-games/games": [
+        "../games/src/index.ts"
+      ],
+      "@pvp-games/games/*": [
+        "../games/src/*"
+      ]
+    },
+    "allowJs": true,
+    "incremental": true,
+    "esModuleInterop": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
-  "include": ["src", "vite.config.ts", "vitest.config.ts"],
-  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test/**", "vite-config.test.ts"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ],
   "references": [
-    { "path": "../games" }
+    {
+      "path": "../games"
+    }
   ]
 }

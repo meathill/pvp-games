@@ -9,7 +9,10 @@ const sharedEntry = fileURLToPath(new URL('../shared/src/index.ts', import.meta.
 export default defineConfig({
   root: __dirname,
   test: {
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/**/*.{test.ts,test.tsx}'],
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './tests/setup.ts',
     coverage: { reporter: ['text', 'html'] }
   },
   resolve: {
