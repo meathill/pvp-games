@@ -20,3 +20,6 @@
 ## 测试计划
 - 配置测试：读取 `vite.config.ts` 验证 host、port、fs.allow、插件与 build 选项。
 - UI 测试：渲染 App，断言标题/说明、得分面板、按钮存在；模拟点击“开始对战”后状态进入 running，并能重置。
+
+## 开发规范
+- 每次提交前必须验证测试与构建脚本（如 `pnpm test`、`pnpm build` 或对应子包命令），确保流水线可用。

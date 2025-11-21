@@ -2,10 +2,12 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { defineConfig, type PluginOption } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const reactPlugins = react();
 const plugins: PluginOption[] = Array.isArray(reactPlugins) ? reactPlugins : [reactPlugins];
+plugins.push(tailwindcss());
 
 export default defineConfig({
   plugins,
