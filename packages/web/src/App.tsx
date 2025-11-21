@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Direction, DuelSnakeState, PlayerId } from '@pvp-games/games/src/duel-snake';
-import { DuelSnakeGame } from '@pvp-games/games/src/duel-snake';
+import type { Direction, DuelSnakeState, PlayerId } from '@pvp-games/games';
+import { DuelSnakeGame } from '@pvp-games/games';
 import './app.css';
 
 type KeyBinding = {
@@ -99,8 +99,12 @@ export function App() {
 
   const width = state.dimensions.width;
   const height = state.dimensions.height;
-  const p1Cells = new Set(state.players.p1.segments.map((cell) => `${cell.x},${cell.y}`));
-  const p2Cells = new Set(state.players.p2.segments.map((cell) => `${cell.x},${cell.y}`));
+  const p1Cells = new Set(
+    state.players.p1.segments.map((cell: DuelSnakeState['players']['p1']['segments'][number]) => `${cell.x},${cell.y}`)
+  );
+  const p2Cells = new Set(
+    state.players.p2.segments.map((cell: DuelSnakeState['players']['p2']['segments'][number]) => `${cell.x},${cell.y}`)
+  );
   const fruitKey = `${state.fruit.x},${state.fruit.y}`;
 
   return (

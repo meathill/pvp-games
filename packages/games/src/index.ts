@@ -1,4 +1,5 @@
-import { createSharedContext, SharedContext } from '@pvp-games/shared';
+import { createSharedContext } from '@pvp-games/shared';
+import type { SharedContext } from '@pvp-games/shared';
 import { DuelSnakeGame } from './duel-snake';
 
 export interface GameSummary {
@@ -28,3 +29,4 @@ export function getGameSummaries(): GameSummary[] {
 }
 
 export { DuelSnakeGame };
+export type { Direction, DuelSnakeState, PlayerId } from './duel-snake';
