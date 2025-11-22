@@ -46,4 +46,5 @@ export function getGameSummaries(): GameSummary[] {
 
 export { DuelSnakeGame };
 export { DuelSnakeExperience } from './duel-snake/react';
+export { DuelSnakeOnlineClient, DuelSnakeOnlineHost, type DuelSnakeWireMessage } from './duel-snake/online';
 export type { Direction, DuelSnakeState, PlayerId } from './duel-snake/engine';
