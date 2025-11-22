@@ -20,6 +20,24 @@ const CELL_SIZE = 18;
 const CELL_GAP = 2;
 const DEFAULT_TICK_MS = Math.round(140 / 0.75);
 
+export const PLAYER_COLORS: Record<
+  PlayerId,
+  { primary: string; stroke: string; light: string; text: string }
+> = {
+  p1: {
+    primary: '#34d399',
+    stroke: 'rgba(110, 231, 183, 0.7)',
+    light: '#ecfdf3',
+    text: '#065f46'
+  },
+  p2: {
+    primary: '#38bdf8',
+    stroke: 'rgba(125, 211, 252, 0.7)',
+    light: '#f0f9ff',
+    text: '#0ea5e9'
+  }
+};
+
 type ThemeMode = 'light' | 'dark' | 'system';
 type ClassValue = string | false | null | undefined;
 
@@ -216,15 +234,43 @@ export function DuelSnakeExperience({
             <div
               className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-100 dark:ring-emerald-800"
               aria-label={`P1 分数: ${state.players.p1.score}`}
+              title="P1 分数标记"
+              style={{
+                backgroundColor: PLAYER_COLORS.p1.light,
+                color: PLAYER_COLORS.p1.text,
+                boxShadow: `0 0 0 1px ${PLAYER_COLORS.p1.stroke}`
+              }}
             >
-              <span className="h-3 w-3 rounded-sm bg-emerald-400" aria-hidden />
+              <span
+                className="h-3 w-3 rounded-sm bg-emerald-400"
+                aria-hidden
+                style={{
+                  backgroundColor: PLAYER_COLORS.p1.primary,
+                  boxShadow: `0 0 0 1px ${PLAYER_COLORS.p1.stroke}`
+                }}
+                title="P1 配色"
+              />
               <span className="font-semibold">P1 分数: {state.players.p1.score}</span>
             </div>
             <div
               className="flex items-center gap-2 rounded-lg bg-sky-50 px-3 py-2 text-sky-700 ring-1 ring-sky-100 dark:bg-sky-900/40 dark:text-sky-100 dark:ring-sky-800"
               aria-label={`P2 分数: ${state.players.p2.score}`}
+              title="P2 分数标记"
+              style={{
+                backgroundColor: PLAYER_COLORS.p2.light,
+                color: PLAYER_COLORS.p2.text,
+                boxShadow: `0 0 0 1px ${PLAYER_COLORS.p2.stroke}`
+              }}
             >
-              <span className="h-3 w-3 rounded-sm bg-sky-400" aria-hidden />
+              <span
+                className="h-3 w-3 rounded-sm bg-sky-400"
+                aria-hidden
+                style={{
+                  backgroundColor: PLAYER_COLORS.p2.primary,
+                  boxShadow: `0 0 0 1px ${PLAYER_COLORS.p2.stroke}`
+                }}
+                title="P2 配色"
+              />
               <span className="font-semibold">P2 分数: {state.players.p2.score}</span>
             </div>
             {state.winner && (
@@ -266,12 +312,37 @@ export function DuelSnakeExperience({
                 return 'bg-slate-200 ring-1 ring-slate-200 dark:bg-slate-700 dark:ring-slate-600';
               })();
 
+              const fillStyle = (() => {
+                if (isP1) {
+                  return {
+                    backgroundColor: PLAYER_COLORS.p1.primary,
+                    boxShadow: `0 0 0 1px ${PLAYER_COLORS.p1.stroke}`
+                  };
+                }
+                if (isP2) {
+                  return {
+                    backgroundColor: PLAYER_COLORS.p2.primary,
+                    boxShadow: `0 0 0 1px ${PLAYER_COLORS.p2.stroke}`
+                  };
+                }
+                return undefined;
+              })();
+
+              const cellLabel = (() => {
+                if (isFruit) return `果实 (${x},${y})`;
+                if (isP1) return `P1 蛇身 (${x},${y})`;
+                if (isP2) return `P2 蛇身 (${x},${y})`;
+                return `空白 (${x},${y})`;
+              })();
+
               return (
                 <div
                   key={key}
                   role="presentation"
                   className={classNames('h-[18px] w-[18px] rounded-sm transition-colors duration-150', fillClass)}
                   aria-label={`cell-${x}-${y}`}
+                  title={cellLabel}
+                  style={fillStyle}
                 />
               );
             })}
