@@ -21,4 +21,26 @@ describe('DuelSnakeExperience', () => {
     const cells = within(grid).getAllByRole('presentation', { hidden: true });
     expect(cells).toHaveLength(20 * 15);
   });
+
+  it('exposes fallbacks for player identification when styles are missing', () => {
+    render(<DuelSnakeExperience initialSeed="tdd-seed" />);
+
+    const p1Cell = screen.getByLabelText('cell-2-1');
+    const p2Cell = screen.getByLabelText('cell-17-13');
+
+    expect(p1Cell).toHaveAttribute('title', expect.stringContaining('P1'));
+    expect(p2Cell).toHaveAttribute('title', expect.stringContaining('P2'));
+
+    expect(p1Cell).toHaveStyle({ backgroundColor: '#34d399' });
+    expect(p2Cell).toHaveStyle({ backgroundColor: '#38bdf8' });
+
+    const p1Badge = screen.getByLabelText(/P1 分数:/);
+    const p2Badge = screen.getByLabelText(/P2 分数:/);
+
+    expect(p1Badge).toHaveAttribute('title', expect.stringContaining('P1'));
+    expect(p2Badge).toHaveAttribute('title', expect.stringContaining('P2'));
+
+    expect(p1Badge).toHaveStyle({ backgroundColor: '#ecfdf3', color: '#065f46' });
+    expect(p2Badge).toHaveStyle({ backgroundColor: '#f0f9ff', color: '#0ea5e9' });
+  });
 });
