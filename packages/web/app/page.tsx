@@ -1,43 +1,13 @@
 import React from 'react';
-import { DuelSnakeExperience, getGameSummaries } from '@pvp-games/games';
+import Link from 'next/link';
 
-const hallHighlights = [
-  {
-    title: '零等待开局',
-    description: '无需下载，浏览器即可进入本地或在线对战。'
-  },
-  {
-    title: '每日推荐',
-    description: '根据游玩反馈轮换首页展示，让大厅保持新鲜。'
-  },
-  {
-    title: '共享引擎',
-    description: '核心玩法托管在 @pvp-games/games，前端按需加载。'
-  }
-];
+import { hallHighlights, pickFeaturedGame, sidebarNotices } from './data/home';
+import { listGameCatalog } from './data/games';
 
-const sidebarNotices = [
-  {
-    title: '周末蛇蛇积分赛',
-    description: '限定 10 回合，累计水果数排行，上榜即展示。',
-    tone: '活动'
-  },
-  {
-    title: '云对战大厅预告',
-    description: 'Sky Pong 与 Grid Rush 将接入匹配与观战。',
-    tone: '预告'
-  },
-  {
-    title: '征集玩法与素材',
-    description: '欢迎提交 Issue/PR，扩展地图皮肤或联机模式。',
-    tone: '社区'
-  }
-];
-
-const games = getGameSummaries();
+const games = listGameCatalog();
 
 export default function HomePage() {
-  const duelSnake = games.find((game) => game.id === 'duel-snake') ?? games[ 0 ];
+  const duelSnake = pickFeaturedGame(games);
 
   return (
     <main className="mx-auto max-w-6xl space-y-10 px-6 py-10">
@@ -71,18 +41,20 @@ export default function HomePage() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg ring-1 ring-white/60 transition hover:-translate-y-[1px] hover:shadow-xl"
-              >
-                立即开局
-              </button>
-              <button
-                type="button"
+              {duelSnake && (
+                <Link
+                  href={`/games/${duelSnake.id}`}
+                  className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg ring-1 ring-white/60 transition hover:-translate-y-[1px] hover:shadow-xl"
+                >
+                  立即开局
+                </Link>
+              )}
+              <Link
+                href="#game-list"
                 className="rounded-full bg-transparent px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/40 transition hover:-translate-y-[1px] hover:bg-white/10"
               >
                 查看全部游戏
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -94,17 +66,30 @@ export default function HomePage() {
                 <p className="text-sm text-white/80">{duelSnake?.description ?? '本地双人对战，开局即战。'}</p>
               </div>
               <span className="rounded-full bg-slate-900/60 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ring-1 ring-white/15">
-                from games package
+                独立游戏页
               </span>
             </div>
-            <div className="mt-4 overflow-hidden rounded-xl bg-slate-950/40 ring-1 ring-white/10">
-              <DuelSnakeExperience />
+            <div className="mt-4 rounded-xl bg-slate-950/40 p-4 ring-1 ring-white/10">
+              <p className="text-sm text-white/80">进入专属游戏页即可启动对战体验，首页保持轻量展示。</p>
+              {duelSnake && (
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <Link
+                    href={`/games/${duelSnake.id}`}
+                    className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg ring-1 ring-white/60 transition hover:-translate-y-[1px] hover:shadow-xl"
+                  >
+                    前往 {duelSnake.title}
+                  </Link>
+                  <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/90 ring-1 ring-white/20">
+                    {duelSnake.tags?.join(' · ') ?? 'PVP'}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
+      <section id="game-list" className="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
@@ -143,6 +128,15 @@ export default function HomePage() {
                       {tag}
                     </span>
                   ))}
+                </div>
+                <div className="mt-4 flex items-center justify-between">
+                  <Link
+                    href={`/games/${game.id}`}
+                    className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-[1px] hover:bg-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900"
+                  >
+                    进入游戏
+                  </Link>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">独立页面加载对战体验</span>
                 </div>
               </article>
             ))}

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbopack -p 3020",
     "build": "next build",
     "lint": "eslint . --fix",
     "test": "vitest run",
@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@pvp-games/games": "workspace:^",
+    "@pvp-games/shared": "workspace:^",
     "next": "^16.0.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
