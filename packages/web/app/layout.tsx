@@ -1,5 +1,9 @@
+import React from 'react';
 import type { Metadata } from 'next';
 import './globals.css';
+
+import { SiteFooter } from './components/site-footer';
+import { SiteHeader } from './components/site-header';
 
 export const metadata: Metadata = {
   title: 'PVP 游戏大厅',
@@ -9,7 +13,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN">
-      <body className="bg-slate-50 text-slate-900 antialiased dark:bg-slate-900 dark:text-slate-100">{children}</body>
+      <body className="bg-slate-50 text-slate-900 antialiased dark:bg-slate-900 dark:text-slate-100">
+        <div className="flex min-h-screen flex-col">
+          <SiteHeader />
+          <div className="flex-1">{children}</div>
+          <SiteFooter />
+        </div>
+      </body>
     </html>
   );
 }
