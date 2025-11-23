@@ -51,3 +51,12 @@
    - 实现 `packages/netplay` SDK：封装 WebRTC（Google STUN 默认，可配置 TURN）、信令消息编解码、WebSocket Relay 回退。
    - 在 Cloudflare Worker/Durable Object 中落地房间逻辑与信令/Relay 端点，提供 HTTP 创建链接与 WebSocket 接入。
    - 将 Duel Snake 等游戏接入 SDK，打通“创建链接 → 分享 → 双方开始”完整链路，并补充 README/TESTING。
+
+## Cloudflare Durable Object 部署变量（可选，现阶段不需要）
+- 当前联机贪吃蛇仍使用内存双工信道进行测试，不依赖 Cloudflare 基础设施；仅在接入 Worker/DO 信令时需要以下配置。
+- Wrangler 建议使用以下环境变量，便于 CI/CD 注入：
+  - `CLOUDFLARE_ACCOUNT_ID`：Cloudflare 账号 ID。
+  - `CLOUDFLARE_API_TOKEN`：具备 Durable Object 与 KV/Workers 写权限的 API Token。
+  - `NETPLAY_DO_NAMESPACE`：Durable Object namespace（在 wrangler 创建绑定后暴露的名称）。
+  - `NETPLAY_DO_CLASS`：房间 Durable Object 的类名，保持与 Worker 源码一致，例如 `NetplayRoom`。
+- TURN/STUN 配置（若需要中继）可通过 `TURN_URLS`、`TURN_USERNAME`、`TURN_CREDENTIAL` 提供；未设置时默认采用浏览器内置或公开 STUN。
