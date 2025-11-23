@@ -1,7 +1,7 @@
 import type { PeerRole, RealtimeEndpoint, RealtimeEnvelope } from '@pvp-games/shared';
 
-import type { Direction, DuelSnakeOptions, DuelSnakeState } from './engine.js';
-import { DuelSnakeGame } from './engine.js';
+import type { Direction, DuelSnakeOptions, DuelSnakeState } from './engine';
+import { DuelSnakeGame } from './engine';
 
 export type DuelSnakeWireMessage =
   | { type: 'ready' }

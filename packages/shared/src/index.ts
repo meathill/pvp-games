@@ -20,4 +20,4 @@ export function createSharedContext(options: SharedContextOptions): SharedContex
   };
 }
 
-export * from './realtime.js';
+export * from './realtime';
