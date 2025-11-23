@@ -1,4 +1,5 @@
-import { createSharedContext, SharedContext } from '@pvp-games/shared';
+import { createSharedContext } from '@pvp-games/shared';
+import type { SharedContext } from '@pvp-games/shared';
 
 export interface ServerConfig {
   port: number;
@@ -13,3 +14,5 @@ export function createServerConfig(overrides: Partial<Omit<ServerConfig, 'shared
     shared: createSharedContext({ project: 'pvp-games' })
   };
 }
+
+export { DODataExchanger } from './durable-object';

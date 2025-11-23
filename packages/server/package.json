@@ -5,9 +5,12 @@
   "private": true,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/local-signaling.ts",
     "lint": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
@@ -16,7 +19,11 @@
     "@pvp-games/shared": "workspace:^"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251202.0",
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.19.2",
     "typescript": "^5.4.5",
-    "vitest": "^1.6.0"
+    "vitest": "^1.6.0",
+    "ws": "^8.18.0"
   }
 }

@@ -21,3 +21,6 @@ export function createSharedContext(options: SharedContextOptions): SharedContex
 }
 
 export * from './realtime';
+export * from './webrtc';
+export * from './websocket-relay';
+export * from './connection-manager';

@@ -14,6 +14,14 @@ const fallbackCatalog: GameEntry[] = [
     description: '本地双人同屏贪吃蛇对决：1P 方向键，2P WASD，先吃 10 果获胜。',
     tags: ['local', '2p', 'snake'],
     shared: createSharedContext({ project: 'pvp-games' })
+  },
+  {
+    id: 'duel-snake-online',
+    slug: 'duel-snake-online',
+    title: 'Duel Snake (Online PVP)',
+    description: '在线双人贪吃蛇对决：创建房间邀请好友，或加入好友的房间进行对战。',
+    tags: ['online', 'pvp', 'snake'],
+    shared: createSharedContext({ project: 'pvp-games' })
   }
 ];
 
