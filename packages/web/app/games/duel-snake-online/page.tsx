@@ -25,10 +25,24 @@ type PageState = 'menu' | 'creating' | 'joining' | 'playing';
 // Production signaling server URL - update after deployment
 const PRODUCTION_SERVER_URL = process.env.NEXT_PUBLIC_SIGNALING_URL || '';
 
+// Convert HTTP(S) URL to WebSocket URL
+function getWebSocketUrl(httpUrl: string): string {
+  if (!httpUrl) return '';
+  // If already a WebSocket URL, return as is
+  if (httpUrl.startsWith('ws://') || httpUrl.startsWith('wss://')) {
+    return httpUrl;
+  }
+  // Convert https:// to wss:// and http:// to ws://
+  const wsUrl = httpUrl.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:');
+  // Add /ws path if not present
+  return wsUrl.endsWith('/ws') ? wsUrl : `${wsUrl}/ws`;
+}
+
 // Use production URL if available, otherwise fall back to local development
+// Use wss:// for HTTPS pages and ws:// for HTTP pages
 const DEFAULT_SERVER_URL =
   typeof window !== 'undefined'
-    ? PRODUCTION_SERVER_URL || `ws://${window.location.hostname}:8787/ws`
+    ? getWebSocketUrl(PRODUCTION_SERVER_URL) || `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname}:8787/ws`
     : 'ws://localhost:8787/ws';
 
 export default function DuelSnakeOnlinePage() {
