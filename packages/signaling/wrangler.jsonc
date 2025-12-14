@@ -4,6 +4,7 @@
   "main": "src/index.ts",
   "compatibility_date": "2025-11-21",
   "compatibility_flags": ["nodejs_compat"],
+  "account_id": "fdc63eeea83ae8f5234357308b9a638b",
   "durable_objects": {
     "bindings": [
       {
