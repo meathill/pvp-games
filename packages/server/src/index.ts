@@ -1,4 +1,5 @@
-import { createSharedContext, SharedContext } from '@pvp-games/shared';
+import { createSharedContext } from '@pvp-games/shared';
+import type { SharedContext } from '@pvp-games/shared';
 
 export interface ServerConfig {
   port: number;
@@ -10,6 +11,8 @@ export function createServerConfig(overrides: Partial<Omit<ServerConfig, 'shared
   return {
     port: overrides.port ?? 3000,
     protocol: overrides.protocol ?? 'webrtc',
-    shared: createSharedContext({ project: 'pvp-games' })
+    shared: createSharedContext({ project: 'pvp-games' }),
   };
 }
+
+export { DODataExchanger } from './durable-object';

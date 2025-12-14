@@ -67,7 +67,7 @@ describe('DuelSnakeGame (local 2P)', () => {
     expect(p1.segments).toEqual([
       { x: 2, y: 1 },
       { x: 1, y: 1 },
-      { x: 0, y: 1 }
+      { x: 0, y: 1 },
     ]);
   });
 });

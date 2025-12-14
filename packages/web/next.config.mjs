@@ -2,9 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
-    typedRoutes: true
+    typedRoutes: true,
   },
-  transpilePackages: ['@pvp-games/games', '@pvp-games/shared']
+  transpilePackages: ['@pvp-games/games', '@pvp-games/shared'],
 };
 
 export default nextConfig;

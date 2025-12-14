@@ -18,22 +18,29 @@ export default function HomePage() {
             <p className="text-sm font-semibold uppercase tracking-[0.12em] text-sky-100">PVP GAME HUB</p>
             <h1 className="text-4xl font-bold leading-tight">PVP 游戏大厅</h1>
             <p className="max-w-2xl text-lg leading-relaxed text-slate-100/90">
-              精选轻量级 PVP 小游戏，覆盖本地、局域网与在线匹配。Next.js 负责渲染与 SEO，
-              具体玩法通过 <code className="rounded bg-white/10 px-1 py-[2px] font-mono text-sm text-sky-100 ring-1 ring-white/20">@pvp-games/games</code>{' '}
+              精选轻量级 PVP 小游戏，覆盖本地、局域网与在线匹配。Next.js 负责渲染与 SEO， 具体玩法通过{' '}
+              <code className="rounded bg-white/10 px-1 py-[2px] font-mono text-sm text-sky-100 ring-1 ring-white/20">
+                @pvp-games/games
+              </code>{' '}
               提供的组件加载，前端只做大厅编排。
             </p>
             <div className="flex flex-wrap gap-3 text-sm">
-              <span className="rounded-full bg-white/10 px-3 py-1 font-medium ring-1 ring-white/30">今日推荐 · {duelSnake?.title ?? '精选游戏'}</span>
-              <span className="rounded-full bg-white/5 px-3 py-1 font-medium ring-1 ring-white/20">共 {games.length} 款上架</span>
-              <span className="rounded-full bg-sky-500/20 px-3 py-1 font-medium text-sky-50 ring-1 ring-sky-200/50">每日更新</span>
+              <span className="rounded-full bg-white/10 px-3 py-1 font-medium ring-1 ring-white/30">
+                今日推荐 · {duelSnake?.title ?? '精选游戏'}
+              </span>
+              <span className="rounded-full bg-white/5 px-3 py-1 font-medium ring-1 ring-white/20">
+                共 {games.length} 款上架
+              </span>
+              <span className="rounded-full bg-sky-500/20 px-3 py-1 font-medium text-sky-50 ring-1 ring-sky-200/50">
+                每日更新
+              </span>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               {hallHighlights.map((item) => (
                 <div
                   key={item.title}
-                  className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner backdrop-blur"
-                >
+                  className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner backdrop-blur">
                   <p className="text-base font-semibold text-white">{item.title}</p>
                   <p className="mt-1 text-sm text-white/80">{item.description}</p>
                 </div>
@@ -44,15 +51,13 @@ export default function HomePage() {
               {duelSnake && (
                 <Link
                   href={`/games/${duelSnake.id}`}
-                  className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg ring-1 ring-white/60 transition hover:-translate-y-[1px] hover:shadow-xl"
-                >
+                  className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg ring-1 ring-white/60 transition hover:-translate-y-[1px] hover:shadow-xl">
                   立即开局
                 </Link>
               )}
               <Link
                 href="#game-list"
-                className="rounded-full bg-transparent px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/40 transition hover:-translate-y-[1px] hover:bg-white/10"
-              >
+                className="rounded-full bg-transparent px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/40 transition hover:-translate-y-[1px] hover:bg-white/10">
                 查看全部游戏
               </Link>
             </div>
@@ -75,8 +80,7 @@ export default function HomePage() {
                 <div className="mt-3 flex flex-wrap items-center gap-3">
                   <Link
                     href={`/games/${duelSnake.id}`}
-                    className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg ring-1 ring-white/60 transition hover:-translate-y-[1px] hover:shadow-xl"
-                  >
+                    className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg ring-1 ring-white/60 transition hover:-translate-y-[1px] hover:shadow-xl">
                     前往 {duelSnake.title}
                   </Link>
                   <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/90 ring-1 ring-white/20">
@@ -89,7 +93,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="game-list" className="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
+      <section
+        id="game-list"
+        className="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
@@ -106,13 +112,14 @@ export default function HomePage() {
             {games.map((game) => (
               <article
                 key={game.id}
-                className="flex h-full flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-[1px] hover:border-sky-200 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900"
-              >
+                className="flex h-full flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-[1px] hover:border-sky-200 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900">
                 <div className="space-y-2">
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
                       <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">{game.title}</h3>
-                      {game.description && <p className="text-sm text-slate-600 dark:text-slate-300">{game.description}</p>}
+                      {game.description && (
+                        <p className="text-sm text-slate-600 dark:text-slate-300">{game.description}</p>
+                      )}
                     </div>
                     <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-700 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
                       PVP
@@ -123,8 +130,7 @@ export default function HomePage() {
                   {(game.tags ?? []).map((tag) => (
                     <span
                       key={tag}
-                      className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700"
-                    >
+                      className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
                       {tag}
                     </span>
                   ))}
@@ -132,8 +138,7 @@ export default function HomePage() {
                 <div className="mt-4 flex items-center justify-between">
                   <Link
                     href={`/games/${game.id}`}
-                    className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-[1px] hover:bg-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900"
-                  >
+                    className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-[1px] hover:bg-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900">
                     进入游戏
                   </Link>
                   <span className="text-xs text-slate-500 dark:text-slate-400">独立页面加载对战体验</span>
@@ -153,8 +158,7 @@ export default function HomePage() {
             {sidebarNotices.map((notice) => (
               <div
                 key={notice.title}
-                className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900/60"
-              >
+                className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900/60">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-base font-semibold text-slate-900 dark:text-slate-50">{notice.title}</p>

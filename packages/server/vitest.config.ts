@@ -10,11 +10,11 @@ export default defineConfig({
   root: __dirname,
   test: {
     include: ['tests/**/*.test.ts'],
-    coverage: { reporter: ['text', 'html'] }
+    coverage: { reporter: ['text', 'html'] },
   },
   resolve: {
     alias: {
-      '@pvp-games/shared': sharedEntry
-    }
-  }
+      '@pvp-games/shared': sharedEntry,
+    },
+  },
 });

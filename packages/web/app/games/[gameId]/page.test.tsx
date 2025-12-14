@@ -6,13 +6,13 @@ const mockGameSummaries = vi.fn(() => [
     id: 'duel-snake',
     title: 'Stub Duel Snake',
     description: 'stub description',
-    tags: ['daily', 'local']
-  }
+    tags: ['daily', 'local'],
+  },
 ]);
 
 vi.mock('@pvp-games/games', () => ({
   DuelSnakeExperience: () => <div data-testid="duel-snake-experience" />,
-  getGameSummaries: mockGameSummaries
+  getGameSummaries: mockGameSummaries,
 }));
 
 let GamePage: typeof import('./page').default;

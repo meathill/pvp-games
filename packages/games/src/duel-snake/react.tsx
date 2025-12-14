@@ -13,29 +13,26 @@ const KEY_BINDINGS: Record<string, { player: PlayerId; direction: Direction }> =
   w: { player: 'p2', direction: 'up' },
   s: { player: 'p2', direction: 'down' },
   a: { player: 'p2', direction: 'left' },
-  d: { player: 'p2', direction: 'right' }
+  d: { player: 'p2', direction: 'right' },
 };
 
 const CELL_SIZE = 18;
 const CELL_GAP = 2;
 const DEFAULT_TICK_MS = Math.round(140 / 0.75);
 
-export const PLAYER_COLORS: Record<
-  PlayerId,
-  { primary: string; stroke: string; light: string; text: string }
-> = {
+export const PLAYER_COLORS: Record<PlayerId, { primary: string; stroke: string; light: string; text: string }> = {
   p1: {
     primary: '#34d399',
     stroke: 'rgba(110, 231, 183, 0.7)',
     light: '#ecfdf3',
-    text: '#065f46'
+    text: '#065f46',
   },
   p2: {
     primary: '#38bdf8',
     stroke: 'rgba(125, 211, 252, 0.7)',
     light: '#f0f9ff',
-    text: '#0ea5e9'
-  }
+    text: '#0ea5e9',
+  },
 };
 
 type ThemeMode = 'light' | 'dark' | 'system';
@@ -54,7 +51,7 @@ function classNames(...values: ClassValue[]): string {
 function createGame(seed?: string, tickIntervalMs?: number) {
   return new DuelSnakeGame({
     seed,
-    tickIntervalMs: tickIntervalMs ?? DEFAULT_TICK_MS
+    tickIntervalMs: tickIntervalMs ?? DEFAULT_TICK_MS,
   });
 }
 
@@ -117,11 +114,7 @@ function useTheme(initialMode: ThemeMode = 'light') {
   return { mode, setMode, resolvedTheme } as const;
 }
 
-export function DuelSnakeExperience({
-  initialSeed,
-  initialTheme = 'light',
-  tickIntervalMs
-}: DuelSnakeExperienceProps) {
+export function DuelSnakeExperience({ initialSeed, initialTheme = 'light', tickIntervalMs }: DuelSnakeExperienceProps) {
   const [game, setGame] = useState(() => createGame(initialSeed, tickIntervalMs));
   const [state, setState] = useState<DuelSnakeState>(() => game.getState());
   const { mode: themeMode, setMode: setThemeMode, resolvedTheme } = useTheme(initialTheme);
@@ -190,8 +183,7 @@ export function DuelSnakeExperience({
                   aria-label="主题"
                   value={themeMode}
                   onChange={(event) => setThemeMode(event.target.value as ThemeMode)}
-                  className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-sm font-medium text-slate-800 shadow-sm outline-none transition hover:border-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-slate-500 dark:focus:border-sky-400"
-                >
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-sm font-medium text-slate-800 shadow-sm outline-none transition hover:border-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-slate-500 dark:focus:border-sky-400">
                   <option value="light">浅色</option>
                   <option value="dark">深色</option>
                   <option value="system">跟随系统</option>
@@ -201,15 +193,13 @@ export function DuelSnakeExperience({
                 <button
                   type="button"
                   onClick={start}
-                  className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-sky-400 dark:bg-sky-500 dark:hover:bg-sky-400 dark:focus-visible:ring-offset-slate-900"
-                >
+                  className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-sky-400 dark:bg-sky-500 dark:hover:bg-sky-400 dark:focus-visible:ring-offset-slate-900">
                   开始对战
                 </button>
                 <button
                   type="button"
                   onClick={reset}
-                  className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-slate-400 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-slate-500 dark:focus-visible:ring-offset-slate-900"
-                >
+                  className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-slate-400 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-slate-500 dark:focus-visible:ring-offset-slate-900">
                   重新开始
                 </button>
               </div>
@@ -238,15 +228,14 @@ export function DuelSnakeExperience({
               style={{
                 backgroundColor: PLAYER_COLORS.p1.light,
                 color: PLAYER_COLORS.p1.text,
-                boxShadow: `0 0 0 1px ${PLAYER_COLORS.p1.stroke}`
-              }}
-            >
+                boxShadow: `0 0 0 1px ${PLAYER_COLORS.p1.stroke}`,
+              }}>
               <span
                 className="h-3 w-3 rounded-sm bg-emerald-400"
                 aria-hidden
                 style={{
                   backgroundColor: PLAYER_COLORS.p1.primary,
-                  boxShadow: `0 0 0 1px ${PLAYER_COLORS.p1.stroke}`
+                  boxShadow: `0 0 0 1px ${PLAYER_COLORS.p1.stroke}`,
                 }}
                 title="P1 配色"
               />
@@ -259,15 +248,14 @@ export function DuelSnakeExperience({
               style={{
                 backgroundColor: PLAYER_COLORS.p2.light,
                 color: PLAYER_COLORS.p2.text,
-                boxShadow: `0 0 0 1px ${PLAYER_COLORS.p2.stroke}`
-              }}
-            >
+                boxShadow: `0 0 0 1px ${PLAYER_COLORS.p2.stroke}`,
+              }}>
               <span
                 className="h-3 w-3 rounded-sm bg-sky-400"
                 aria-hidden
                 style={{
                   backgroundColor: PLAYER_COLORS.p2.primary,
-                  boxShadow: `0 0 0 1px ${PLAYER_COLORS.p2.stroke}`
+                  boxShadow: `0 0 0 1px ${PLAYER_COLORS.p2.stroke}`,
                 }}
                 title="P2 配色"
               />
@@ -276,27 +264,27 @@ export function DuelSnakeExperience({
             {state.winner && (
               <div
                 className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-amber-700 ring-1 ring-amber-100 dark:bg-amber-900/40 dark:text-amber-50 dark:ring-amber-800"
-                aria-label={`胜者：${state.winner.toUpperCase()}`}
-              >
+                aria-label={`胜者：${state.winner.toUpperCase()}`}>
                 <span className="font-semibold">胜者：{state.winner.toUpperCase()}</span>
               </div>
             )}
           </div>
         </section>
 
-        <section className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:ring-slate-700" aria-label="对战棋盘">
+        <section
+          className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:ring-slate-700"
+          aria-label="对战棋盘">
           <div
             data-testid="board-grid"
             className={classNames(
               'grid rounded-xl bg-slate-100 p-2 shadow-inner ring-1 ring-slate-200 transition-colors dark:bg-slate-900 dark:ring-slate-700',
-              'overflow-auto'
+              'overflow-auto',
             )}
             style={{
               gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
               gridTemplateRows: `repeat(${height}, ${CELL_SIZE}px)`,
-              gap: `${CELL_GAP}px`
-            }}
-          >
+              gap: `${CELL_GAP}px`,
+            }}>
             {Array.from({ length: height * width }).map((_, index) => {
               const x = index % width;
               const y = Math.floor(index / width);
@@ -316,13 +304,13 @@ export function DuelSnakeExperience({
                 if (isP1) {
                   return {
                     backgroundColor: PLAYER_COLORS.p1.primary,
-                    boxShadow: `0 0 0 1px ${PLAYER_COLORS.p1.stroke}`
+                    boxShadow: `0 0 0 1px ${PLAYER_COLORS.p1.stroke}`,
                   };
                 }
                 if (isP2) {
                   return {
                     backgroundColor: PLAYER_COLORS.p2.primary,
-                    boxShadow: `0 0 0 1px ${PLAYER_COLORS.p2.stroke}`
+                    boxShadow: `0 0 0 1px ${PLAYER_COLORS.p2.stroke}`,
                   };
                 }
                 return undefined;

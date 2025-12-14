@@ -15,7 +15,7 @@ const duelSnakeSummary: GameSummary = {
   title: 'Duel Snake (Local 2P)',
   description: '双人同屏贪吃蛇对决：1P 方向键，2P WASD，先吃 10 果获胜。',
   tags: ['local', '2p', 'snake'],
-  shared: createSharedContext({ project: 'pvp-games' })
+  shared: createSharedContext({ project: 'pvp-games' }),
 };
 
 const skyPongSummary: GameSummary = {
@@ -23,7 +23,7 @@ const skyPongSummary: GameSummary = {
   title: 'Sky Pong (Online soon)',
   description: '云端对战的空战乒乓，计划支持匹配与观战。',
   tags: ['online', 'ranked'],
-  shared: createSharedContext({ project: 'pvp-games' })
+  shared: createSharedContext({ project: 'pvp-games' }),
 };
 
 const gridRushSummary: GameSummary = {
@@ -31,7 +31,7 @@ const gridRushSummary: GameSummary = {
   title: 'Grid Rush (Co-op)',
   description: '合作解锁格子的街机闯关，适合直播互动与局域网。',
   tags: ['co-op', 'arcade'],
-  shared: createSharedContext({ project: 'pvp-games' })
+  shared: createSharedContext({ project: 'pvp-games' }),
 };
 
 const placeholderGames: GameSummary[] = [duelSnakeSummary, skyPongSummary, gridRushSummary];
@@ -46,4 +46,6 @@ export function getGameSummaries(): GameSummary[] {
 
 export { DuelSnakeGame };
 export { DuelSnakeExperience } from './duel-snake/react';
+export { DuelSnakeOnline } from './duel-snake/online-react';
+export { DuelSnakeOnlineClient, DuelSnakeOnlineHost, type DuelSnakeWireMessage } from './duel-snake/online';
 export type { Direction, DuelSnakeState, PlayerId } from './duel-snake/engine';

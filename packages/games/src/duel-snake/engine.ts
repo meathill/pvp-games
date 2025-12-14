@@ -40,7 +40,7 @@ const OPPOSITE: Record<Direction, Direction> = {
   up: 'down',
   down: 'up',
   left: 'right',
-  right: 'left'
+  right: 'left',
 };
 
 const DEFAULT_WIDTH = 20;
@@ -99,7 +99,7 @@ export class DuelSnakeGame {
 
     this.players = {
       p1: this.createPlayer('p1', 'right'),
-      p2: this.createPlayer('p2', 'left')
+      p2: this.createPlayer('p2', 'left'),
     };
 
     this.players.p1.segments = this.buildCornerSegments('p1');
@@ -118,8 +118,8 @@ export class DuelSnakeGame {
       dimensions: { width: this.width, height: this.height },
       players: {
         p1: this.clonePlayer(this.players.p1),
-        p2: this.clonePlayer(this.players.p2)
-      }
+        p2: this.clonePlayer(this.players.p2),
+      },
     };
   }
 
@@ -156,7 +156,7 @@ export class DuelSnakeGame {
     const occupied = this.collectOccupied();
     const plannedMoves: Record<PlayerId, { next: Point; grow: boolean; collide: boolean }> = {
       p1: { next: { x: 0, y: 0 }, grow: false, collide: false },
-      p2: { next: { x: 0, y: 0 }, grow: false, collide: false }
+      p2: { next: { x: 0, y: 0 }, grow: false, collide: false },
     };
 
     (['p1', 'p2'] as PlayerId[]).forEach((id) => {
@@ -179,7 +179,7 @@ export class DuelSnakeGame {
       plannedMoves[id] = {
         next: nextHead,
         grow: nextHead.x === this.fruit.x && nextHead.y === this.fruit.y,
-        collide: hitWall || hitBody
+        collide: hitWall || hitBody,
       };
     });
 
@@ -222,7 +222,7 @@ export class DuelSnakeGame {
       segments: [],
       score: 0,
       alive: true,
-      ready: false
+      ready: false,
     };
   }
 
@@ -233,13 +233,13 @@ export class DuelSnakeGame {
       return [
         { x, y },
         { x: x + 1, y },
-        { x: x + 2, y }
+        { x: x + 2, y },
       ];
     }
     return [
       { x: 2, y },
       { x: 1, y },
-      { x: 0, y }
+      { x: 0, y },
     ];
   }
 
@@ -266,43 +266,45 @@ export class DuelSnakeGame {
 
   private respawnPlayer(player: PlayerId): void {
     const otherOccupied = this.collectOccupied().filter(
-      (cell) => !this.players[player].segments.some((segment) => segment.x === cell.x && segment.y === cell.y)
+      (cell) => !this.players[player].segments.some((segment) => segment.x === cell.x && segment.y === cell.y),
     );
     const corners: Array<{ x: number; y: number; direction: Direction }> = [
       { x: 1, y: 1, direction: 'right' },
       { x: this.width - 2, y: 1, direction: 'left' },
       { x: 1, y: this.height - 2, direction: 'right' },
-      { x: this.width - 2, y: this.height - 2, direction: 'left' }
+      { x: this.width - 2, y: this.height - 2, direction: 'left' },
     ];
     const viable = corners.filter((corner) => {
       const occupied = new Set(otherOccupied.map((cell) => `${cell.x},${cell.y}`));
-      const cells = corner.direction === 'right'
-        ? [
-            { x: corner.x + 1, y: corner.y },
-            { x: corner.x, y: corner.y },
-            { x: corner.x - 1, y: corner.y }
-          ]
-        : [
-            { x: corner.x - 1, y: corner.y },
-            { x: corner.x, y: corner.y },
-            { x: corner.x + 1, y: corner.y }
-          ];
+      const cells =
+        corner.direction === 'right'
+          ? [
+              { x: corner.x + 1, y: corner.y },
+              { x: corner.x, y: corner.y },
+              { x: corner.x - 1, y: corner.y },
+            ]
+          : [
+              { x: corner.x - 1, y: corner.y },
+              { x: corner.x, y: corner.y },
+              { x: corner.x + 1, y: corner.y },
+            ];
       return cells.every((cell) => !occupied.has(`${cell.x},${cell.y}`));
     });
 
     const candidates = viable.length > 0 ? viable : corners;
     const chosen = candidates[Math.floor(this.random() * candidates.length) % candidates.length];
-    const segments = chosen.direction === 'right'
-      ? [
-          { x: chosen.x + 1, y: chosen.y },
-          { x: chosen.x, y: chosen.y },
-          { x: chosen.x - 1, y: chosen.y }
-        ]
-      : [
-          { x: chosen.x - 1, y: chosen.y },
-          { x: chosen.x, y: chosen.y },
-          { x: chosen.x + 1, y: chosen.y }
-        ];
+    const segments =
+      chosen.direction === 'right'
+        ? [
+            { x: chosen.x + 1, y: chosen.y },
+            { x: chosen.x, y: chosen.y },
+            { x: chosen.x - 1, y: chosen.y },
+          ]
+        : [
+            { x: chosen.x - 1, y: chosen.y },
+            { x: chosen.x, y: chosen.y },
+            { x: chosen.x + 1, y: chosen.y },
+          ];
 
     this.players[player].segments = segments;
     this.players[player].direction = chosen.direction;
@@ -313,7 +315,7 @@ export class DuelSnakeGame {
   private clonePlayer(player: PlayerState): PlayerState {
     return {
       ...player,
-      segments: player.segments.map(clonePoint)
+      segments: player.segments.map(clonePoint),
     };
   }
 
