@@ -2,8 +2,8 @@ import React from 'react';
 import type { Metadata } from 'next';
 import './globals.css';
 
-import { SiteFooter } from './components/site-footer';
-import { SiteHeader } from './components/site-header';
+import { SiteFooter } from './_components/site-footer';
+import { SiteHeader } from './_components/site-header';
 
 export const metadata: Metadata = {
   title: 'PVP 游戏大厅',

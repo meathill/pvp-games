@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 /**
  * GameRoom Durable Object logic tests
- * 
+ *
  * Note: Full integration tests require Cloudflare's Miniflare or wrangler dev.
  * These tests verify the protocol and message handling logic.
  */

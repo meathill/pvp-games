@@ -6,7 +6,8 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "paths": {
       "@pvp-games/games": ["../games/src/index.ts"],
-      "@pvp-games/games/*": ["../games/src/*"]
+      "@pvp-games/games/*": ["../games/src/*"],
+      "@/*": ["./*"]
     },
     "allowJs": true,
     "incremental": true,

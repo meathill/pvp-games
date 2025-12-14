@@ -1,6 +1,6 @@
 /**
  * PVP Games Signaling Worker
- * 
+ *
  * Cloudflare Worker with Durable Object for real-time game room management.
  * Handles WebSocket connections for game signaling and message relay.
  */
@@ -37,9 +37,9 @@ export default {
       const role = url.searchParams.get('role');
 
       if (!roomId || !role) {
-        return new Response('Missing room or role parameter', { 
-          status: 400, 
-          headers: corsHeaders 
+        return new Response('Missing room or role parameter', {
+          status: 400,
+          headers: corsHeaders,
         });
       }
 
@@ -60,7 +60,7 @@ export default {
 
       const id = env.ROOM.idFromName(roomId);
       const room = env.ROOM.get(id);
-      
+
       // Forward to DO for info
       const infoUrl = new URL(request.url);
       infoUrl.pathname = '/info';
@@ -70,18 +70,18 @@ export default {
     // Default response
     return new Response(
       'PVP Games Signaling Server\n\n' +
-      'Endpoints:\n' +
-      '- GET /health - Health check\n' +
-      '- GET /api/room/:id - Room info\n' +
-      '- WS /ws?room=:id&role=host|guest - WebSocket connection',
-      { headers: { 'Content-Type': 'text/plain', ...corsHeaders } }
+        'Endpoints:\n' +
+        '- GET /health - Health check\n' +
+        '- GET /api/room/:id - Room info\n' +
+        '- WS /ws?room=:id&role=host|guest - WebSocket connection',
+      { headers: { 'Content-Type': 'text/plain', ...corsHeaders } },
     );
   },
 };
 
 /**
  * GameRoom Durable Object
- * 
+ *
  * Manages a single game room with two player slots (host/guest).
  */
 export class GameRoom {
@@ -102,17 +102,20 @@ export class GameRoom {
 
     // Room info endpoint
     if (url.pathname === '/info') {
-      return new Response(JSON.stringify({
-        hasHost: !!this.host,
-        hasGuest: !!this.guest,
-        createdAt: this.createdAt,
-        lastActivity: this.lastActivity,
-      }), {
-        headers: { 
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
+      return new Response(
+        JSON.stringify({
+          hasHost: !!this.host,
+          hasGuest: !!this.guest,
+          createdAt: this.createdAt,
+          lastActivity: this.lastActivity,
+        }),
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
         },
-      });
+      );
     }
 
     // WebSocket upgrade

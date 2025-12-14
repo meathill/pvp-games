@@ -1,62 +1,230 @@
 # 架构概览
 
-## 文档原则
-- 只保留必要文档：README（面向用户）、TESTING（测试指南）、.github/copilot-instructions.md（代码风格与架构约定，可被 Gemini/Codex/GitHub Copilot CLI 直接消费）。
-- 文档内容需精准并保持及时更新；重要信息放在合适位置，避免冗余与冲突。
-- 临时信息集中在 dev-note.md/WIP.md（中短期计划）和 TODO.md（长期关注点），阶段完成后及时清理旧文档并补充新文档。
+本文档描述 PVP Games 项目的整体架构、设计决策和技术实现。
 
-## 网络方案
-- **WebRTC + 服务器协助信令：** 客户端通过轻量信令服务（HTTP 或 WebSocket）建立会话、匹配玩家并交换 ICE；建立后走点对点 DataChannel 传输游戏数据。
-- **Cloudflare Durable Object 作为信令/中转：** 以 Durable Object 房间实例管理玩家列表、就绪状态与 ICE/offer/answer 交换；同一实例同时提供 WebSocket Relay 兜底，当 WebRTC 失败或受限时转为有序广播。
-- **TURN/STUN 兜底：** 默认直连，必要时使用配置好的 STUN/TURN（含 Google STUN）以穿透 NAT/防火墙。
-- **消息封装：** 采用带版本号的 JSON 信封，配合共享模块的模式校验，保证客户端与服务器兼容。
+## 项目结构
+
+```
+pvp-games/
+├── packages/
+│   ├── shared/      # 共享工具、类型和网络抽象
+│   ├── games/       # 游戏逻辑和 React 组件
+│   ├── signaling/   # Cloudflare Worker 信令服务
+│   └── web/         # Next.js 前端应用
+├── docs/            # 项目文档
+└── package.json     # Monorepo 根配置
+```
+
+## 文档原则
+
+- **精简必要**：只保留 README、测试文档、架构文档和 Copilot 指南
+- **及时更新**：文档与代码同步更新，避免过时信息
+- **临时信息分离**：dev-note.md/WIP.md 用于短期计划，TODO.md 用于长期规划
+
+## 网络架构
+
+### 当前实现
+
+```
+┌─────────────┐        WebSocket        ┌─────────────┐
+│   Host      │◄──────────────────────►│  Signaling  │
+│  (Browser)  │                         │  (Durable   │
+│             │                         │   Object)   │
+│  游戏逻辑    │◄──────────────────────►│             │
+│  状态广播    │        WebSocket        │  消息中继   │
+└─────────────┘                         └──────┬──────┘
+                                               │
+                                               │ WebSocket
+                                               ▼
+                                        ┌─────────────┐
+                                        │   Guest     │
+                                        │  (Browser)  │
+                                        │             │
+                                        │  输入发送   │
+                                        │  状态接收   │
+                                        └─────────────┘
+```
+
+当前使用 **WebSocket 消息中继** 模式：
+- 所有消息通过 Cloudflare Durable Object 中转
+- 简单可靠，延迟约 50-150ms（取决于地理位置）
+
+### 未来规划：WebRTC P2P
+
+```
+┌─────────────┐     WebRTC DataChannel    ┌─────────────┐
+│   Host      │◄─────────────────────────►│   Guest     │
+│  (Browser)  │      点对点低延迟         │  (Browser)  │
+└──────┬──────┘                           └──────┬──────┘
+       │                                         │
+       │ 信令交换 (offer/answer/ICE)             │
+       └─────────────────┬───────────────────────┘
+                         │
+                  ┌──────┴──────┐
+                  │  Signaling  │
+                  │   Server    │
+                  └─────────────┘
+```
+
+WebRTC 实现（代码已准备，待集成）：
+- 通过信令服务交换 offer/answer/ICE candidate
+- 建立直接 P2P 连接，延迟可降至 10-50ms
+- 当 WebRTC 失败时自动回退到 WebSocket
 
 ## 模块职责
-- **Server：** 会话创建/加入、信令端点、分发 TURN/STUN 配置、基础权限校验（如房间成员）、遥测与可选的回放/排行榜存储。
-- **Games（如 Snake）：** 客户端渲染与模拟循环、游戏内消息处理、远端输入的对账与补偿；规则需确定性以支持锁步校验。
-- **Shared：** 协议契约（TypeScript 类型/模式）、校验助手、时钟同步、随机种子管理、测试夹具，供 server 与 games 复用。
 
-## 流程（设计 → 测试 → 编码）
-1. **设计：** 先在文档中写出协议/状态图与信令、玩法时序草图。
-2. **测试：** 为模式、消息处理、确定性模拟添加单元/契约测试，优先放在 shared，确保失败再补需求。
-3. **编码：** 按测试实现 server/client，小步提交；每完成一阶段立即跑相关测试，避免回归。
+### packages/shared
 
-## 初始测试指引
-- 信令与游戏载荷的模式测试（TypeScript 类型 + 运行时校验）。
-- 确定性模拟测试（固定随机种子、固定 tick），验证锁步一致性与回滚安全。
-- 在测试中加入延迟/丢包模拟，覆盖 DataChannel 处理的鲁棒性。
-- 每次改动跑 lint/type-check；重要合并后做 lobby 创建与 P2P 连接的冒烟。
+**核心共享模块**，提供：
+- **类型定义**：`PeerRole`、`RealtimeEndpoint`、`RealtimeEnvelope`
+- **网络抽象**：`InMemoryRealtimeEndpoint`（测试用）、`WebRTCRealtimeEndpoint`、`WebSocketRelayEndpoint`
+- **连接管理**：`ConnectionManager`（自动选择最佳传输方式）
+- **工具函数**：`createSharedContext`、随机种子管理
 
-## 路线图（首个 PvP：Snake）
-- 里程碑 1：共享契约覆盖 lobby、匹配、Snake 状态快照，并附测试。
-- 里程碑 2：WebRTC 信令链路（创建/加入/ICE 交换），配无头集成测试。
-- 里程碑 3：Snake 确定性引擎（网格、食物、碰撞、计分），含支持回滚的状态 diff 测试。
-- 里程碑 4：客户端 UI（输入缓冲、渲染循环）与跨端同步验证。
-- 里程碑 5：遥测、重连/观战支持与赛后总结。
+### packages/games
 
-## 联网对战实施计划（Cloudflare Durable Object）
-围绕“先设计 → 写测试 → 再编码”的流程，将联网模块拆解为以下阶段（每阶段结束都执行对应测试）：
+**游戏实现模块**，包含：
+- **游戏引擎**：`DuelSnakeGame`（确定性游戏逻辑）
+- **在线同步**：`DuelSnakeOnlineHost`、`DuelSnakeOnlineClient`
+- **React 组件**：`DuelSnakeExperience`（本地）、`DuelSnakeOnline`（在线）
 
-1. **契约与房间设计（文档阶段）**：
-   - 定义 Durable Object 房间模型：房间 UUID、玩家槽位、ready 状态、WebRTC 信令缓冲、Relay 队列。
-   - 设计消息协议（版本号、动作类型、负载结构）与错误码，区分 WebRTC 信令与 WebSocket Relay 载荷。
-   - 规划前端共享 SDK（`packages/netplay`）的 API：创建/加入房间、ready/start 流程、事件订阅。
+### packages/signaling
 
-2. **测试编写阶段**：
-   - 在共享模块添加协议与状态机的类型/运行时模式测试，确保房间生命周期、信令与回退路径可验证。
-   - 为 Durable Object Handler 写单元/集成测试：创建房间、两端加入、信令转发、WebSocket Relay 透传、异常恢复。
-   - 前端 hook/Provider 的契约测试：模拟房间创建分享链接、双方 ready 后触发 start 事件。
+**信令服务模块**，基于 Cloudflare Workers：
+- **Worker 入口**：HTTP/WebSocket 路由
+- **Durable Object**：`GameRoom` 类，管理房间状态和消息转发
+- 支持本地开发（`wrangler dev`）和生产部署
 
-3. **编码与集成阶段**：
-   - 实现 `packages/netplay` SDK：封装 WebRTC（Google STUN 默认，可配置 TURN）、信令消息编解码、WebSocket Relay 回退。
-   - 在 Cloudflare Worker/Durable Object 中落地房间逻辑与信令/Relay 端点，提供 HTTP 创建链接与 WebSocket 接入。
-   - 将 Duel Snake 等游戏接入 SDK，打通“创建链接 → 分享 → 双方开始”完整链路，并补充 README/TESTING。
+### packages/web
 
-## Cloudflare Durable Object 部署变量（可选，现阶段不需要）
-- 当前联机贪吃蛇仍使用内存双工信道进行测试，不依赖 Cloudflare 基础设施；仅在接入 Worker/DO 信令时需要以下配置。
-- Wrangler 建议使用以下环境变量，便于 CI/CD 注入：
-  - `CLOUDFLARE_ACCOUNT_ID`：Cloudflare 账号 ID。
-  - `CLOUDFLARE_API_TOKEN`：具备 Durable Object 与 KV/Workers 写权限的 API Token。
-  - `NETPLAY_DO_NAMESPACE`：Durable Object namespace（在 wrangler 创建绑定后暴露的名称）。
-  - `NETPLAY_DO_CLASS`：房间 Durable Object 的类名，保持与 Worker 源码一致，例如 `NetplayRoom`。
-- TURN/STUN 配置（若需要中继）可通过 `TURN_URLS`、`TURN_USERNAME`、`TURN_CREDENTIAL` 提供；未设置时默认采用浏览器内置或公开 STUN。
+**前端应用**，基于 Next.js：
+- **页面路由**：游戏大厅、游戏详情页
+- **游戏加载**：动态导入游戏组件
+- **部署**：通过 OpenNext 部署到 Cloudflare Pages
+
+## 消息协议
+
+### 信封格式
+
+```typescript
+interface RealtimeEnvelope<T> {
+  from: 'host' | 'guest';
+  payload: T;
+  createdAt: number;
+}
+```
+
+### 游戏消息类型
+
+```typescript
+type DuelSnakeWireMessage =
+  | { type: 'ready' }
+  | { type: 'input'; direction: Direction; clientTick?: number }
+  | { type: 'state'; state: DuelSnakeState; serverTime: number }
+  | { type: 'sync-request' }
+  | { type: 'ping'; timestamp: number }
+  | { type: 'pong'; timestamp: number };
+```
+
+### 信令消息类型
+
+```typescript
+type RelayWireMessage =
+  | { type: 'join'; role: PeerRole }
+  | { type: 'joined'; role: PeerRole }
+  | { type: 'leave'; role: PeerRole }
+  | { type: 'room-ready' }
+  | { type: 'game'; payload: unknown }
+  | { type: 'ping' }
+  | { type: 'pong' };
+```
+
+## 游戏同步模型
+
+采用 **Host 权威模式**：
+
+1. **Host 端**：
+   - 运行游戏引擎，处理所有逻辑
+   - 接收 Guest 输入，放入缓冲区
+   - 每个 tick 广播完整状态
+
+2. **Guest 端**：
+   - 发送输入到 Host
+   - 接收并渲染 Host 广播的状态
+   - 测量延迟用于 UI 显示
+
+### 确定性保证
+
+- 使用固定随机种子生成食物位置
+- 游戏逻辑完全确定，相同输入产生相同结果
+- 支持回放和校验
+
+## 开发流程
+
+### 设计 → 测试 → 编码
+
+1. **设计阶段**：
+   - 定义协议和状态机
+   - 绘制时序图
+   - 确定 API 接口
+
+2. **测试阶段**：
+   - 编写单元测试验证逻辑
+   - 编写协议测试验证消息格式
+   - 编写集成测试验证端到端流程
+
+3. **编码阶段**：
+   - 实现功能，确保测试通过
+   - 小步提交，频繁验证
+   - 更新文档
+
+## 路线图
+
+### ✅ 已完成
+
+- [x] 本地双人贪吃蛇
+- [x] WebSocket 消息中继
+- [x] Cloudflare Durable Object 房间管理
+- [x] 在线对战前端集成
+- [x] 局域网测试
+- [x] 部署文档
+
+### 🚧 进行中
+
+- [ ] 广域网部署和测试
+- [ ] 性能优化
+
+### 📋 计划中
+
+- [ ] WebRTC P2P 连接
+- [ ] 房间密码功能
+- [ ] 随机匹配系统
+- [ ] 观战功能
+- [ ] 更多游戏类型
+
+## 环境变量
+
+### 前端 (packages/web)
+
+| 变量 | 说明 |
+|------|------|
+| `NEXT_PUBLIC_SIGNALING_URL` | 信令服务 WebSocket URL |
+
+### 信令服务 (packages/signaling)
+
+目前不需要额外环境变量。
+
+### 可选配置
+
+| 变量 | 说明 |
+|------|------|
+| `TURN_URLS` | TURN 服务器 URL（WebRTC 中继） |
+| `TURN_USERNAME` | TURN 认证用户名 |
+| `TURN_CREDENTIAL` | TURN 认证密码 |
+
+## 相关文档
+
+- [本地测试指南](./local-testing.md)
+- [部署指南](./deployment.md)
+- [测试指南](./testing.md)
+- [游戏在线对战设计](../packages/games/docs/duel-snake-online.md)

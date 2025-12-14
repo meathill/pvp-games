@@ -20,74 +20,129 @@
 ```
 
 部署分为两个独立的 Cloudflare Workers：
-1. **pvp-games** - Next.js 前端（已有）
-2. **pvp-signaling** - WebSocket 信令服务（新增）
+
+| Worker | 说明 | 技术栈 |
+|--------|------|--------|
+| `pvp-games` | 前端页面和游戏渲染 | Next.js + OpenNext |
+| `pvp-signaling` | WebSocket 信令和房间管理 | Durable Object |
 
 ## 前置条件
 
-1. Cloudflare 账户
-2. Wrangler CLI 已登录：`npx wrangler login`
-3. 项目依赖已安装：`pnpm install`
+1. **Cloudflare 账户** - 免费计划即可
+2. **Wrangler CLI** - Cloudflare 的命令行工具
+3. **项目依赖** - 已安装完成
+
+### 登录 Cloudflare
+
+```bash
+npx wrangler login
+```
+
+这会打开浏览器进行授权。
+
+### 安装依赖
+
+```bash
+pnpm install
+```
 
 ## 部署步骤
 
 ### 第一步：部署信令服务
 
+使用根目录的快捷命令：
+
+```bash
+pnpm deploy:signaling
+```
+
+或者进入目录手动部署：
+
 ```bash
 cd packages/signaling
-pnpm install
 pnpm deploy
 ```
 
 部署成功后，你会看到类似输出：
 
 ```
-Published pvp-signaling (x.xx sec)
-  https://pvp-signaling.<your-subdomain>.workers.dev
+✨ Uploaded pvp-signaling (x.xx sec)
+✨ Deployed pvp-signaling to https://pvp-signaling.<your-subdomain>.workers.dev
 ```
 
 **记下这个 URL**，后面需要用到。
 
 ### 第二步：配置前端环境变量
 
-创建或编辑 `packages/web/.env.production`：
+创建生产环境配置文件 `packages/web/.env.production`：
 
 ```bash
-# 替换为你的信令服务 URL
+# 替换 <your-subdomain> 为你的实际子域名
 NEXT_PUBLIC_SIGNALING_URL=wss://pvp-signaling.<your-subdomain>.workers.dev/ws
 ```
 
-> 注意：生产环境使用 `wss://`（加密），而非 `ws://`
+> ⚠️ **重要**：生产环境必须使用 `wss://`（加密 WebSocket），而非 `ws://`
 
 ### 第三步：部署前端
 
 ```bash
 cd packages/web
-pnpm build
-pnpm wrangler deploy
+pnpm deploy
+```
+
+这会执行以下步骤：
+1. 使用 OpenNext 构建 Next.js 应用
+2. 上传到 Cloudflare Workers
+
+部署成功后，你会看到前端 URL：
+
+```
+✨ Deployed pvp-games to https://pvp-games.<your-subdomain>.workers.dev
 ```
 
 ## 验证部署
 
-1. 访问你的前端 URL：`https://pvp-games.<your-subdomain>.workers.dev`
-2. 进入"贪吃蛇在线对战"
-3. 创建房间，在另一个设备或浏览器加入
-4. 验证游戏能正常进行
+### 1. 检查信令服务健康状态
 
-## 环境变量说明
+```bash
+curl https://pvp-signaling.<your-subdomain>.workers.dev/health
+```
 
-| 变量名 | 说明 | 示例 |
-|--------|------|------|
-| `NEXT_PUBLIC_SIGNALING_URL` | 信令服务 WebSocket URL | `wss://pvp-signaling.xxx.workers.dev/ws` |
+应该返回：
 
-## 自定义域名（可选）
+```json
+{"status":"ok"}
+```
+
+### 2. 测试在线对战
+
+1. 打开前端 URL
+2. 进入"贪吃蛇在线对战"（或直接访问 `/games/duel-snake-online`）
+3. 点击"创建房间"
+4. 在另一个设备或浏览器窗口输入房间码加入
+5. 验证游戏能正常进行
+
+## 环境变量
+
+### 前端环境变量
+
+| 变量名 | 必需 | 说明 | 示例 |
+|--------|------|------|------|
+| `NEXT_PUBLIC_SIGNALING_URL` | 是 | 信令服务 WebSocket URL | `wss://pvp-signaling.xxx.workers.dev/ws` |
+
+### 信令服务环境变量
+
+信令服务目前不需要额外的环境变量。
+
+## 自定义域名
 
 ### 为信令服务配置自定义域名
 
-1. 在 Cloudflare Dashboard 进入 Workers & Pages
-2. 找到 `pvp-signaling` Worker
-3. 进入 Settings → Triggers → Custom Domains
-4. 添加自定义域名，如 `ws.yourdomain.com`
+1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com)
+2. 进入 **Workers & Pages**
+3. 找到 `pvp-signaling` Worker
+4. 进入 **Settings → Triggers → Custom Domains**
+5. 添加自定义域名，如 `ws.yourdomain.com`
 
 然后更新前端环境变量：
 
@@ -101,12 +156,14 @@ NEXT_PUBLIC_SIGNALING_URL=wss://ws.yourdomain.com/ws
 
 ## 监控与调试
 
-### 查看信令服务日志
+### 实时查看日志
 
 ```bash
 cd packages/signaling
 npx wrangler tail
 ```
+
+这会实时显示 Worker 的日志输出。
 
 ### 查看房间状态
 
@@ -114,48 +171,92 @@ npx wrangler tail
 curl https://pvp-signaling.<your-subdomain>.workers.dev/api/room/ROOMID
 ```
 
-### 常见问题
+返回示例：
 
-#### 连接失败
+```json
+{
+  "hasHost": true,
+  "hasGuest": false,
+  "createdAt": 1702500000000,
+  "lastActivity": 1702500100000
+}
+```
 
-1. 检查环境变量 `NEXT_PUBLIC_SIGNALING_URL` 是否正确
-2. 确认使用 `wss://` 而非 `ws://`
-3. 查看浏览器控制台错误信息
+### Cloudflare Dashboard
 
-#### 游戏延迟高
+在 Dashboard 中可以查看：
+- 请求量统计
+- 错误率
+- CPU 使用时间
+- Durable Object 存储使用量
+
+## 常见问题
+
+### 连接失败 / 1006 错误
+
+1. **检查 URL 协议** - 确认使用 `wss://` 而非 `ws://`
+2. **检查环境变量** - 确认 `NEXT_PUBLIC_SIGNALING_URL` 设置正确
+3. **查看控制台** - 浏览器 F12 查看详细错误
+4. **检查 CORS** - 信令服务已配置允许所有来源
+
+### 游戏延迟高
 
 - Cloudflare 会自动选择最近的边缘节点
-- 如果延迟仍然高，可能是跨地区连接
-- 未来可以考虑实现 WebRTC P2P 连接
+- 跨地区玩家可能延迟较高（100-300ms）
+- 未来可以考虑实现 WebRTC P2P 连接降低延迟
 
-#### 房间无法创建
+### 房间无法创建
 
-- 检查信令服务是否正常运行
-- 查看 Worker 日志是否有错误
+1. 检查信令服务是否正常运行
+2. 使用 `wrangler tail` 查看实时日志
+3. 确认 Durable Object 迁移已完成
+
+### 部署失败
+
+```bash
+# 查看详细错误
+npx wrangler deploy --verbose
+
+# 检查配置
+npx wrangler whoami
+```
 
 ## 成本估算
 
-Cloudflare Workers 免费计划包含：
-- 每日 100,000 次请求
-- Durable Objects：每月 100,000 次请求 + 1GB 存储
+### Cloudflare Workers 免费计划
 
-对于小型项目，免费计划通常足够。
+| 资源 | 免费额度 |
+|------|----------|
+| Workers 请求 | 每日 100,000 次 |
+| Durable Objects 请求 | 每月 100,000 次 |
+| Durable Objects 存储 | 1 GB |
+| Workers CPU 时间 | 每日 10ms/请求 |
+
+对于小型项目和测试，免费计划完全够用。
+
+### 付费计划
+
+如果需要更高的配额，Workers Paid 计划 $5/月 起。
 
 ## 更新部署
 
 ### 更新信令服务
 
 ```bash
-cd packages/signaling
-pnpm deploy
+pnpm deploy:signaling
 ```
 
 ### 更新前端
 
 ```bash
 cd packages/web
-pnpm build
-pnpm wrangler deploy
+pnpm deploy
+```
+
+### 查看部署历史
+
+```bash
+npx wrangler deployments list
 ```
 
 ## 回滚
@@ -163,13 +264,27 @@ pnpm wrangler deploy
 如需回滚到之前版本：
 
 ```bash
+# 查看可用版本
+npx wrangler deployments list
+
+# 回滚到指定版本
 npx wrangler rollback
 ```
 
+## 安全建议
+
+1. **不要在代码中硬编码敏感信息**
+2. **使用环境变量管理配置**
+3. **考虑添加速率限制**防止滥用
+4. **定期检查日志**发现异常
+
 ## 下一步
 
+部署完成后，可以考虑：
+
 - [ ] 配置自定义域名
-- [ ] 设置监控告警
-- [ ] 考虑实现 WebRTC P2P 降低延迟
+- [ ] 设置 Cloudflare 监控告警
+- [ ] 实现 WebRTC P2P 连接降低延迟
 - [ ] 添加房间密码功能
-- [ ] 实现匹配系统
+- [ ] 实现随机匹配系统
+- [ ] 添加观战功能
