@@ -15,8 +15,8 @@ export function createSharedContext(options: SharedContextOptions): SharedContex
     project: options.project,
     metadata: {
       initialized: true,
-      createdAt: new Date()
-    }
+      createdAt: new Date(),
+    },
   };
 }
 

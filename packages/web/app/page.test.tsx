@@ -7,15 +7,15 @@ vi.mock('@pvp-games/games', () => ({
       id: 'duel-snake',
       title: 'Stub Duel Snake',
       description: 'stub description',
-      tags: ['daily', 'local']
+      tags: ['daily', 'local'],
     },
     {
       id: 'sky-pong',
       title: 'Sky Pong',
       description: 'cloud pong battles',
-      tags: ['online']
-    }
-  ]
+      tags: ['online'],
+    },
+  ],
 }));
 
 import HomePage from './page';

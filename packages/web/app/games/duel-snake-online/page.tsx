@@ -6,17 +6,15 @@ import dynamic from 'next/dynamic';
 import type { PeerRole } from '@pvp-games/shared';
 
 // Dynamic import to avoid SSR issues with WebSocket
-const DuelSnakeOnline = dynamic(
-  () => import('@pvp-games/games').then((mod) => mod.DuelSnakeOnline),
-  { ssr: false, loading: () => <LoadingState /> }
-);
+const DuelSnakeOnline = dynamic(() => import('@pvp-games/games').then((mod) => mod.DuelSnakeOnline), {
+  ssr: false,
+  loading: () => <LoadingState />,
+});
 
 function LoadingState() {
   return (
     <div className="flex min-h-[400px] items-center justify-center rounded-2xl bg-white/80 p-8 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:ring-slate-700">
-      <div className="text-lg font-medium text-slate-600 dark:text-slate-300">
-        正在加载...
-      </div>
+      <div className="text-lg font-medium text-slate-600 dark:text-slate-300">正在加载...</div>
     </div>
   );
 }
@@ -24,9 +22,8 @@ function LoadingState() {
 type PageState = 'menu' | 'creating' | 'joining' | 'playing';
 
 // Default to localhost for local development
-const DEFAULT_SERVER_URL = typeof window !== 'undefined' 
-  ? `ws://${window.location.hostname}:8787/ws`
-  : 'ws://localhost:8787/ws';
+const DEFAULT_SERVER_URL =
+  typeof window !== 'undefined' ? `ws://${window.location.hostname}:8787/ws` : 'ws://localhost:8787/ws';
 
 export default function DuelSnakeOnlinePage() {
   const [pageState, setPageState] = useState<PageState>('menu');
@@ -81,17 +78,14 @@ export default function DuelSnakeOnlinePage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-2">
           <p className="text-sm font-semibold text-sky-600">在线对战</p>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
-            贪吃蛇 PVP
-          </h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">贪吃蛇 PVP</h1>
           <p className="max-w-3xl text-base text-slate-600 dark:text-slate-300">
             与朋友进行在线对战，先吃到 10 分的玩家获胜！
           </p>
         </div>
         <Link
           href="/games/duel-snake"
-          className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:-translate-y-[1px] hover:border-sky-200 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
-        >
+          className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:-translate-y-[1px] hover:border-sky-200 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100">
           返回本地模式
         </Link>
       </div>
@@ -101,29 +95,20 @@ export default function DuelSnakeOnlinePage() {
           <div className="grid gap-6 md:grid-cols-2">
             {/* Create Room */}
             <div className="space-y-4 rounded-xl bg-slate-50 p-6 dark:bg-slate-800">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
-                创建房间
-              </h2>
-              <p className="text-sm text-slate-600 dark:text-slate-300">
-                创建一个新房间，等待朋友加入
-              </p>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">创建房间</h2>
+              <p className="text-sm text-slate-600 dark:text-slate-300">创建一个新房间，等待朋友加入</p>
               <button
                 type="button"
                 onClick={handleCreateRoom}
-                className="w-full rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500"
-              >
+                className="w-full rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500">
                 创建房间
               </button>
             </div>
 
             {/* Join Room */}
             <div className="space-y-4 rounded-xl bg-slate-50 p-6 dark:bg-slate-800">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
-                加入房间
-              </h2>
-              <p className="text-sm text-slate-600 dark:text-slate-300">
-                输入朋友分享的房间码
-              </p>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">加入房间</h2>
+              <p className="text-sm text-slate-600 dark:text-slate-300">输入朋友分享的房间码</p>
               <input
                 type="text"
                 value={joinRoomId}
@@ -136,8 +121,7 @@ export default function DuelSnakeOnlinePage() {
                 type="button"
                 onClick={handleJoinRoom}
                 disabled={!joinRoomId.trim()}
-                className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
-              >
+                className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50">
                 加入房间
               </button>
             </div>
@@ -149,9 +133,7 @@ export default function DuelSnakeOnlinePage() {
               高级设置
             </summary>
             <div className="mt-4 space-y-2">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                信令服务器地址
-              </label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">信令服务器地址</label>
               <input
                 type="text"
                 value={serverUrl}
@@ -186,9 +168,7 @@ export default function DuelSnakeOnlinePage() {
 
       {/* Instructions */}
       <div className="rounded-xl bg-slate-50 p-6 dark:bg-slate-800">
-        <h3 className="mb-3 font-semibold text-slate-900 dark:text-slate-50">
-          如何进行局域网联机测试
-        </h3>
+        <h3 className="mb-3 font-semibold text-slate-900 dark:text-slate-50">如何进行局域网联机测试</h3>
         <ol className="list-inside list-decimal space-y-2 text-sm text-slate-600 dark:text-slate-300">
           <li>
             在终端运行信令服务器：

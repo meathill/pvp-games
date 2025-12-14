@@ -37,7 +37,7 @@ class InMemoryRealtimeEndpoint<TPayload> implements RealtimeEndpoint<TPayload> {
     const envelope: RealtimeEnvelope<TPayload> = {
       from: this.role,
       payload,
-      createdAt: Date.now()
+      createdAt: Date.now(),
     };
     this.remote.receive(envelope);
   }

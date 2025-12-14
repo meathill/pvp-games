@@ -1,6 +1,6 @@
 /**
  * WebSocket-based Relay implementation
- * 
+ *
  * This provides a fallback transport when WebRTC cannot establish a direct connection.
  * It connects to a Cloudflare Durable Object that relays messages between peers.
  */
@@ -83,15 +83,15 @@ export class WebSocketRelayEndpoint<TPayload> implements RealtimeEndpoint<TPaylo
     const envelope: RealtimeEnvelope<TPayload> = {
       from: this.role,
       payload,
-      createdAt: Date.now()
+      createdAt: Date.now(),
     };
 
     const wireMessage: RelayWireMessage<TPayload> = {
       type: 'game',
       message: {
         v: MESSAGE_VERSION,
-        envelope
-      }
+        envelope,
+      },
     };
 
     try {
@@ -112,12 +112,12 @@ export class WebSocketRelayEndpoint<TPayload> implements RealtimeEndpoint<TPaylo
     this.disposed = true;
     this.clearReconnectTimer();
     this.clearPingInterval();
-    
+
     if (this.ws) {
       this.ws.close(1000, 'Disposed');
       this.ws = null;
     }
-    
+
     this.listeners.clear();
     this.pendingMessages = [];
   }
@@ -145,11 +145,11 @@ export class WebSocketRelayEndpoint<TPayload> implements RealtimeEndpoint<TPaylo
       this.ws.onopen = () => {
         this.reconnectAttempts = 0;
         this.onStateChange?.('connected');
-        
+
         // Send join message
         const joinMessage: RelayWireMessage<TPayload> = {
           type: 'join',
-          role: this.role
+          role: this.role,
         };
         this.ws?.send(JSON.stringify(joinMessage));
 
@@ -176,7 +176,7 @@ export class WebSocketRelayEndpoint<TPayload> implements RealtimeEndpoint<TPaylo
       this.ws.onclose = (event) => {
         this.roomReady = false;
         this.clearPingInterval();
-        
+
         if (!this.disposed && event.code !== 1000) {
           this.onStateChange?.('disconnected');
           this.attemptReconnect();

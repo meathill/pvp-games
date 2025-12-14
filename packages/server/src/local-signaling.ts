@@ -1,8 +1,8 @@
 /**
  * Simple WebSocket signaling server for local LAN testing
- * 
+ *
  * Run with: npx tsx packages/server/src/local-signaling.ts
- * 
+ *
  * This creates a minimal WebSocket server that:
  * - Manages rooms with host/guest slots
  * - Forwards signaling messages (offer/answer/ICE)
@@ -45,7 +45,7 @@ const server = createServer((req, res) => {
       id: roomId,
       host: null,
       guest: null,
-      createdAt: Date.now()
+      createdAt: Date.now(),
     });
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -66,11 +66,13 @@ const server = createServer((req, res) => {
     }
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      id: room.id,
-      hasHost: !!room.host,
-      hasGuest: !!room.guest
-    }));
+    res.end(
+      JSON.stringify({
+        id: room.id,
+        hasHost: !!room.host,
+        hasGuest: !!room.guest,
+      }),
+    );
     return;
   }
 
@@ -83,7 +85,9 @@ const server = createServer((req, res) => {
 
   // Default response
   res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('PVP Games Signaling Server\n\nEndpoints:\n- POST /api/room - Create room\n- GET /api/room/:id - Room info\n- WS /ws?room=:id&role=host|guest - WebSocket connection');
+  res.end(
+    'PVP Games Signaling Server\n\nEndpoints:\n- POST /api/room - Create room\n- GET /api/room/:id - Room info\n- WS /ws?room=:id&role=host|guest - WebSocket connection',
+  );
 });
 
 // Create WebSocket server
@@ -105,7 +109,7 @@ wss.on('connection', (ws, req) => {
       id: roomId,
       host: null,
       guest: null,
-      createdAt: Date.now()
+      createdAt: Date.now(),
     });
     console.log(`[Room] Auto-created: ${roomId}`);
   }

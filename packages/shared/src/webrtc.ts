@@ -1,6 +1,6 @@
 /**
  * WebRTC-based RealtimeEndpoint implementation
- * 
+ *
  * This provides a real network transport layer that can be used instead of
  * the in-memory implementation for actual online play.
  */
@@ -32,7 +32,7 @@ type Listener<TPayload> = (envelope: RealtimeEnvelope<TPayload>) => void;
 
 const DEFAULT_ICE_SERVERS: RTCIceServer[] = [
   { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' }
+  { urls: 'stun:stun1.l.google.com:19302' },
 ];
 
 export const MESSAGE_VERSION = 1;
@@ -77,7 +77,7 @@ export class WebRTCRealtimeEndpoint<TPayload> implements RealtimeEndpoint<TPaylo
     }
 
     this.pc = new RTCPeerConnection({
-      iceServers: this.iceServers
+      iceServers: this.iceServers,
     });
 
     this.pc.onconnectionstatechange = () => {
@@ -90,7 +90,7 @@ export class WebRTCRealtimeEndpoint<TPayload> implements RealtimeEndpoint<TPaylo
       if (event.candidate) {
         this.signaling.send({
           type: 'ice-candidate',
-          candidate: event.candidate.toJSON()
+          candidate: event.candidate.toJSON(),
         });
       }
     };
@@ -124,12 +124,12 @@ export class WebRTCRealtimeEndpoint<TPayload> implements RealtimeEndpoint<TPaylo
     const envelope: RealtimeEnvelope<TPayload> = {
       from: this.role,
       payload,
-      createdAt: Date.now()
+      createdAt: Date.now(),
     };
 
     const message: VersionedMessage<TPayload> = {
       v: MESSAGE_VERSION,
-      envelope
+      envelope,
     };
 
     try {
@@ -168,7 +168,7 @@ export class WebRTCRealtimeEndpoint<TPayload> implements RealtimeEndpoint<TPaylo
 
     // Host creates the data channel
     this.dataChannel = this.pc.createDataChannel('game', {
-      ordered: true
+      ordered: true,
     });
     this.setupDataChannel(this.dataChannel);
 
@@ -177,7 +177,7 @@ export class WebRTCRealtimeEndpoint<TPayload> implements RealtimeEndpoint<TPaylo
 
     this.signaling.send({
       type: 'offer',
-      sdp: offer.sdp!
+      sdp: offer.sdp!,
     });
   }
 
@@ -196,7 +196,7 @@ export class WebRTCRealtimeEndpoint<TPayload> implements RealtimeEndpoint<TPaylo
 
           await this.pc.setRemoteDescription({
             type: 'offer',
-            sdp: message.sdp
+            sdp: message.sdp,
           });
 
           const answer = await this.pc.createAnswer();
@@ -204,7 +204,7 @@ export class WebRTCRealtimeEndpoint<TPayload> implements RealtimeEndpoint<TPaylo
 
           this.signaling.send({
             type: 'answer',
-            sdp: answer.sdp!
+            sdp: answer.sdp!,
           });
         }
         break;
@@ -214,7 +214,7 @@ export class WebRTCRealtimeEndpoint<TPayload> implements RealtimeEndpoint<TPaylo
         if (this.role === 'host') {
           await this.pc.setRemoteDescription({
             type: 'answer',
-            sdp: message.sdp
+            sdp: message.sdp,
           });
         }
         break;
@@ -238,7 +238,7 @@ export class WebRTCRealtimeEndpoint<TPayload> implements RealtimeEndpoint<TPaylo
     channel.onmessage = (event) => {
       try {
         const message: VersionedMessage<TPayload> = JSON.parse(event.data);
-        
+
         // Version check for forward compatibility
         if (message.v !== MESSAGE_VERSION) {
           console.warn(`Received message with version ${message.v}, expected ${MESSAGE_VERSION}`);
@@ -264,7 +264,7 @@ export class WebRTCRealtimeEndpoint<TPayload> implements RealtimeEndpoint<TPaylo
  * Create a pair of WebRTC endpoints for testing with mock signaling
  */
 export function createWebRTCEndpointPair<TPayload>(
-  options?: Partial<Omit<WebRTCEndpointOptions<TPayload>, 'role' | 'signaling'>>
+  options?: Partial<Omit<WebRTCEndpointOptions<TPayload>, 'role' | 'signaling'>>,
 ): {
   host: WebRTCRealtimeEndpoint<TPayload>;
   guest: WebRTCRealtimeEndpoint<TPayload>;
@@ -281,13 +281,13 @@ export function createWebRTCEndpointPair<TPayload>(
   const host = new WebRTCRealtimeEndpoint<TPayload>({
     ...options,
     role: 'host',
-    signaling: hostSignaling
+    signaling: hostSignaling,
   });
 
   const guest = new WebRTCRealtimeEndpoint<TPayload>({
     ...options,
     role: 'guest',
-    signaling: guestSignaling
+    signaling: guestSignaling,
   });
 
   return { host, guest, hostSignaling, guestSignaling };

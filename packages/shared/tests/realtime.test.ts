@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import { createLinkedRealtimeEndpoints, type RealtimeEnvelope } from '../src/realtime.js';
 
-interface Ping { type: 'ping'; count: number }
+interface Ping {
+  type: 'ping';
+  count: number;
+}
 
 function stripTimestamps<T>(messages: RealtimeEnvelope<T>[]) {
   return messages.map((message) => ({ ...message, createdAt: 0 }));
@@ -17,9 +20,7 @@ describe('RealtimeEndpoint', () => {
     pair.host.send({ type: 'ping', count: 1 });
     unsubscribe();
 
-    expect(stripTimestamps(received)).toEqual([
-      { from: 'host', payload: { type: 'ping', count: 1 }, createdAt: 0 }
-    ]);
+    expect(stripTimestamps(received)).toEqual([{ from: 'host', payload: { type: 'ping', count: 1 }, createdAt: 0 }]);
   });
 
   it('supports bidirectional delivery and listener cleanup', () => {
@@ -40,10 +41,10 @@ describe('RealtimeEndpoint', () => {
     pair.guest.send({ type: 'ping', count: 5 });
 
     expect(stripTimestamps(hostReceived)).toEqual([
-      { from: 'guest', payload: { type: 'ping', count: 3 }, createdAt: 0 }
+      { from: 'guest', payload: { type: 'ping', count: 3 }, createdAt: 0 },
     ]);
     expect(stripTimestamps(guestReceived)).toEqual([
-      { from: 'host', payload: { type: 'ping', count: 2 }, createdAt: 0 }
+      { from: 'host', payload: { type: 'ping', count: 2 }, createdAt: 0 },
     ]);
   });
 });

@@ -6,3 +6,4 @@ packages/*/.next
 .DS_Store
 coverage
 .idea
+*.tsbuildinfo

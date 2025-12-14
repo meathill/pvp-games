@@ -1,7 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { createLinkedRealtimeEndpoints } from '@pvp-games/shared';
 
-import { DuelSnakeOnlineClient, DuelSnakeOnlineHost, type DuelSnakeWireMessage } from '../src/duel-snake/online.js';
+import { DuelSnakeOnlineClient, DuelSnakeOnlineHost, type DuelSnakeWireMessage } from '../src';
 
 describe('DuelSnake online mode', () => {
   it('starts running after both peers mark ready', () => {
@@ -27,7 +27,13 @@ describe('DuelSnake online mode', () => {
 
   it('broadcasts state after applying guest inputs on host', () => {
     const link = createLinkedRealtimeEndpoints<DuelSnakeWireMessage>();
-    const host = new DuelSnakeOnlineHost({ channel: link.host, width: 10, height: 8, seed: 'net-p2', tickIntervalMs: 100 });
+    const host = new DuelSnakeOnlineHost({
+      channel: link.host,
+      width: 10,
+      height: 8,
+      seed: 'net-p2',
+      tickIntervalMs: 100,
+    });
     const client = new DuelSnakeOnlineClient({ channel: link.guest });
 
     host.markReady();
@@ -79,11 +85,11 @@ describe('DuelSnake online mode', () => {
       channel: link.host,
       seed: 'callback-test',
       tickIntervalMs: 100,
-      onStateChange: (state) => hostStateChanges.push(state.status)
+      onStateChange: (state) => hostStateChanges.push(state.status),
     });
     const client = new DuelSnakeOnlineClient({
       channel: link.guest,
-      onStateChange: (state) => clientStateChanges.push(state.status)
+      onStateChange: (state) => clientStateChanges.push(state.status),
     });
 
     host.markReady();
@@ -141,7 +147,13 @@ describe('DuelSnake online mode', () => {
 
   it('buffers multiple inputs correctly', () => {
     const link = createLinkedRealtimeEndpoints<DuelSnakeWireMessage>();
-    const host = new DuelSnakeOnlineHost({ channel: link.host, width: 10, height: 8, seed: 'buffer-test', tickIntervalMs: 100 });
+    const host = new DuelSnakeOnlineHost({
+      channel: link.host,
+      width: 10,
+      height: 8,
+      seed: 'buffer-test',
+      tickIntervalMs: 100,
+    });
     const client = new DuelSnakeOnlineClient({ channel: link.guest });
 
     host.markReady();
@@ -154,7 +166,7 @@ describe('DuelSnake online mode', () => {
 
     // Only the first should be processed on first tick (FIFO)
     host.tick();
-    
+
     // Subsequent ticks should process remaining buffered inputs
     host.tick();
     host.tick();

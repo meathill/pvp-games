@@ -8,7 +8,7 @@ describe('RootLayout', () => {
     render(
       <RootLayout>
         <main>页面内容</main>
-      </RootLayout>
+      </RootLayout>,
     );
 
     const header = screen.getByRole('banner');

@@ -9,22 +9,19 @@ import type { RealtimeEndpoint, RealtimeEnvelope, PeerRole } from '@pvp-games/sh
 const CELL_SIZE = 18;
 const CELL_GAP = 2;
 
-export const PLAYER_COLORS: Record<
-  PlayerId,
-  { primary: string; stroke: string; light: string; text: string }
-> = {
+export const PLAYER_COLORS: Record<PlayerId, { primary: string; stroke: string; light: string; text: string }> = {
   p1: {
     primary: '#34d399',
     stroke: 'rgba(110, 231, 183, 0.7)',
     light: '#ecfdf3',
-    text: '#065f46'
+    text: '#065f46',
   },
   p2: {
     primary: '#38bdf8',
     stroke: 'rgba(125, 211, 252, 0.7)',
     light: '#f0f9ff',
-    text: '#0ea5e9'
-  }
+    text: '#0ea5e9',
+  },
 };
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'waiting' | 'ready' | 'playing' | 'error';
@@ -50,7 +47,7 @@ class WebSocketEndpoint implements RealtimeEndpoint<DuelSnakeWireMessage> {
     private readonly serverUrl: string,
     private readonly roomId: string,
     private readonly onStatusChange: (status: ConnectionStatus) => void,
-    private readonly onError: (error: string) => void
+    private readonly onError: (error: string) => void,
   ) {
     this.role = role;
   }
@@ -116,7 +113,7 @@ class WebSocketEndpoint implements RealtimeEndpoint<DuelSnakeWireMessage> {
             const envelope: RealtimeEnvelope<DuelSnakeWireMessage> = {
               from: this.role === 'host' ? 'guest' : 'host',
               payload: data,
-              createdAt: Date.now()
+              createdAt: Date.now(),
             };
             this.listeners.forEach((listener) => listener(envelope));
           }
@@ -152,7 +149,7 @@ class WebSocketEndpoint implements RealtimeEndpoint<DuelSnakeWireMessage> {
     const envelope: RealtimeEnvelope<DuelSnakeWireMessage> = {
       from: this.role,
       payload,
-      createdAt: Date.now()
+      createdAt: Date.now(),
     };
 
     this.ws.send(JSON.stringify(envelope));
@@ -195,13 +192,7 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
     if (isConnectingRef.current) return;
     isConnectingRef.current = true;
 
-    const endpoint = new WebSocketEndpoint(
-      role,
-      serverUrl,
-      roomId,
-      setStatus,
-      setError
-    );
+    const endpoint = new WebSocketEndpoint(role, serverUrl, roomId, setStatus, setError);
     endpointRef.current = endpoint;
 
     endpoint.connect().catch((err) => {
@@ -238,7 +229,7 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
             setStatus('playing');
           }
         },
-        onError: (err) => setError(err.message)
+        onError: (err) => setError(err.message),
       });
       hostRef.current = host;
       setState(host.getState());
@@ -255,7 +246,7 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
           }
         },
         onLatencyUpdate: setLatency,
-        onError: (err) => setError(err.message)
+        onError: (err) => setError(err.message),
       });
       clientRef.current = client;
 
@@ -293,7 +284,7 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
         w: 'up',
         s: 'down',
         a: 'left',
-        d: 'right'
+        d: 'right',
       };
 
       const direction = keyMap[event.key.toLowerCase()];
@@ -329,9 +320,7 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
         return '准备开始...';
       case 'playing':
         if (state?.status === 'finished') {
-          return state.winner
-            ? `游戏结束：${state.winner === 'p1' ? '主机' : '访客'}获胜！`
-            : '游戏结束';
+          return state.winner ? `游戏结束：${state.winner === 'p1' ? '主机' : '访客'}获胜！` : '游戏结束';
         }
         return '游戏进行中';
       case 'error':
@@ -345,15 +334,11 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
   if (status !== 'playing' || !state) {
     return (
       <div className="flex min-h-[400px] flex-col items-center justify-center gap-4 rounded-2xl bg-white/80 p-8 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:ring-slate-700">
-        <div className="text-lg font-semibold text-slate-900 dark:text-slate-50">
-          {statusText}
-        </div>
+        <div className="text-lg font-semibold text-slate-900 dark:text-slate-50 px-4">{statusText}</div>
 
         {status === 'waiting' && role === 'host' && (
           <div className="flex flex-col items-center gap-2">
-            <div className="text-sm text-slate-600 dark:text-slate-300">
-              分享此房间码给你的对手：
-            </div>
+            <div className="text-sm text-slate-600 dark:text-slate-300">分享此房间码给你的对手：</div>
             <div className="rounded-lg bg-slate-100 px-4 py-2 font-mono text-2xl font-bold text-slate-900 dark:bg-slate-700 dark:text-slate-50">
               {roomId}
             </div>
@@ -369,8 +354,7 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
         <button
           type="button"
           onClick={handleLeave}
-          className="mt-4 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-        >
+          className="mt-4 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100">
           离开房间
         </button>
       </div>
@@ -391,20 +375,15 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
       {/* Status bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-white/80 px-5 py-4 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:ring-slate-700">
         <div className="flex items-center gap-4">
-          <div className="text-sm font-medium text-slate-600 dark:text-slate-300">
-            {statusText}
-          </div>
+          <div className="text-sm font-medium text-slate-600 dark:text-slate-300">{statusText}</div>
           {latency > 0 && (
-            <div className="text-xs text-slate-500 dark:text-slate-400">
-              延迟: {Math.round(latency)}ms
-            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">延迟: {Math.round(latency)}ms</div>
           )}
         </div>
         <button
           type="button"
           onClick={handleLeave}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-sm font-medium text-slate-700 transition hover:border-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
-        >
+          className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-sm font-medium text-slate-700 transition hover:border-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
           离开
         </button>
       </div>
@@ -416,9 +395,8 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
           style={{
             backgroundColor: PLAYER_COLORS[myPlayer].light,
             color: PLAYER_COLORS[myPlayer].text,
-            boxShadow: `0 0 0 1px ${PLAYER_COLORS[myPlayer].stroke}`
-          }}
-        >
+            boxShadow: `0 0 0 1px ${PLAYER_COLORS[myPlayer].stroke}`,
+          }}>
           <span
             className="h-3 w-3 rounded-sm"
             style={{ backgroundColor: PLAYER_COLORS[myPlayer].primary }}
@@ -431,18 +409,15 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
           style={{
             backgroundColor: PLAYER_COLORS[opponentPlayer].light,
             color: PLAYER_COLORS[opponentPlayer].text,
-            boxShadow: `0 0 0 1px ${PLAYER_COLORS[opponentPlayer].stroke}`
-          }}
-        >
+            boxShadow: `0 0 0 1px ${PLAYER_COLORS[opponentPlayer].stroke}`,
+          }}>
           <span
             className="h-3 w-3 rounded-sm"
             style={{ backgroundColor: PLAYER_COLORS[opponentPlayer].primary }}
           />
           <span className="font-semibold">对手: {state.players[opponentPlayer].score}</span>
         </div>
-        <div className="text-sm text-slate-500 dark:text-slate-400">
-          目标: {state.targetScore}
-        </div>
+        <div className="text-sm text-slate-500 dark:text-slate-400">目标: {state.targetScore}</div>
       </div>
 
       {/* Game board */}
@@ -452,9 +427,8 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
           style={{
             gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
             gridTemplateRows: `repeat(${height}, ${CELL_SIZE}px)`,
-            gap: `${CELL_GAP}px`
-          }}
-        >
+            gap: `${CELL_GAP}px`,
+          }}>
           {Array.from({ length: height * width }).map((_, index) => {
             const x = index % width;
             const y = Math.floor(index / width);
@@ -470,13 +444,13 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
               if (isP1) {
                 return {
                   backgroundColor: PLAYER_COLORS.p1.primary,
-                  boxShadow: `0 0 0 1px ${PLAYER_COLORS.p1.stroke}`
+                  boxShadow: `0 0 0 1px ${PLAYER_COLORS.p1.stroke}`,
                 };
               }
               if (isP2) {
                 return {
                   backgroundColor: PLAYER_COLORS.p2.primary,
-                  boxShadow: `0 0 0 1px ${PLAYER_COLORS.p2.stroke}`
+                  boxShadow: `0 0 0 1px ${PLAYER_COLORS.p2.stroke}`,
                 };
               }
               return undefined;
@@ -494,9 +468,7 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
       </div>
 
       {/* Controls hint */}
-      <div className="text-center text-sm text-slate-500 dark:text-slate-400">
-        使用方向键或 WASD 控制
-      </div>
+      <div className="text-center text-sm text-slate-500 dark:text-slate-400">使用方向键或 WASD 控制</div>
     </div>
   );
 }

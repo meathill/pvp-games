@@ -1,6 +1,6 @@
 /**
  * Connection Manager with WebRTC-first, WebSocket fallback strategy
- * 
+ *
  * This module provides a unified interface for establishing peer connections,
  * automatically falling back to WebSocket relay when WebRTC fails.
  */
@@ -9,7 +9,7 @@ import type { PeerRole, RealtimeEndpoint, RealtimeEnvelope } from './realtime';
 import { WebRTCRealtimeEndpoint, type SignalingChannel, type SignalingMessage } from './webrtc';
 import { WebSocketRelayEndpoint } from './websocket-relay';
 
-export type ConnectionState = 
+export type ConnectionState =
   | 'disconnected'
   | 'connecting'
   | 'signaling'
@@ -46,7 +46,10 @@ class WebSocketSignalingChannel implements SignalingChannel {
   private ws: WebSocket | null = null;
   private pendingMessages: SignalingMessage[] = [];
 
-  constructor(private readonly roomId: string, private readonly role: PeerRole) {}
+  constructor(
+    private readonly roomId: string,
+    private readonly role: PeerRole,
+  ) {}
 
   async connect(serverUrl: string): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -89,10 +92,12 @@ class WebSocketSignalingChannel implements SignalingChannel {
       return;
     }
 
-    this.ws.send(JSON.stringify({
-      type: 'signaling',
-      payload: message
-    }));
+    this.ws.send(
+      JSON.stringify({
+        type: 'signaling',
+        payload: message,
+      }),
+    );
   }
 
   onMessage(handler: (message: SignalingMessage) => void): () => void {
@@ -203,8 +208,7 @@ export class ConnectionManager<TPayload> implements RealtimeEndpoint<TPayload> {
   }
 
   isReady(): boolean {
-    return this.activeEndpoint !== null && 
-           (this.state === 'webrtc-connected' || this.state === 'fallback-connected');
+    return this.activeEndpoint !== null && (this.state === 'webrtc-connected' || this.state === 'fallback-connected');
   }
 
   private async tryWebRTC(): Promise<void> {
@@ -235,7 +239,7 @@ export class ConnectionManager<TPayload> implements RealtimeEndpoint<TPayload> {
       },
       onReady: () => {
         this.onReady?.();
-      }
+      },
     });
 
     // Set up timeout for WebRTC connection
@@ -246,13 +250,8 @@ export class ConnectionManager<TPayload> implements RealtimeEndpoint<TPayload> {
     });
 
     const connectionPromise = new Promise<void>((resolve, reject) => {
-      const checkReady = () => {
-        if (webrtcEndpoint.isReady()) {
-          resolve();
-        }
-      };
-
-      webrtcEndpoint.connect()
+      webrtcEndpoint
+        .connect()
         .then(() => {
           // Connection initiated, wait for data channel to be ready
           const interval = setInterval(() => {
@@ -309,7 +308,7 @@ export class ConnectionManager<TPayload> implements RealtimeEndpoint<TPayload> {
       onReady: () => {
         this.updateState('fallback-connected');
         this.onReady?.();
-      }
+      },
     });
 
     await relayEndpoint.connect();
@@ -378,7 +377,7 @@ export class ConnectionManager<TPayload> implements RealtimeEndpoint<TPayload> {
  * Create a connection manager with sensible defaults
  */
 export function createConnectionManager<TPayload>(
-  options: ConnectionManagerOptions<TPayload>
+  options: ConnectionManagerOptions<TPayload>,
 ): ConnectionManager<TPayload> {
   return new ConnectionManager(options);
 }

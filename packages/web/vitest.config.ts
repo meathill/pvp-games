@@ -16,14 +16,14 @@ export default defineConfig({
     setupFiles: './test/setup.ts',
     include: ['app/**/*.test.tsx', 'test/**/*.test.ts'],
     coverage: {
-      reporter: ['text', 'json', 'html']
-    }
+      reporter: ['text', 'json', 'html'],
+    },
   },
   resolve: {
     alias: {
       '@pvp-games/games': gamesEntry,
       '@pvp-games/shared': sharedEntry,
-      '@pvp-games/games/duel-snake/react': duelSnakeReactEntry
-    }
-  }
+      '@pvp-games/games/duel-snake/react': duelSnakeReactEntry,
+    },
+  },
 });

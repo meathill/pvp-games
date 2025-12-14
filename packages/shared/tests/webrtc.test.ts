@@ -1,10 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import {
-  MockSignalingChannel,
-  MESSAGE_VERSION,
-  type VersionedMessage
-} from '../src/webrtc.js';
+import { MockSignalingChannel, MESSAGE_VERSION, type VersionedMessage } from '../src';
 
 describe('MockSignalingChannel', () => {
   it('relays messages between linked channels', async () => {
@@ -83,8 +79,8 @@ describe('VersionedMessage format', () => {
       envelope: {
         from: 'host',
         payload: { type: 'test', value: 123 },
-        createdAt: Date.now()
-      }
+        createdAt: Date.now(),
+      },
     };
 
     const serialized = JSON.stringify(message);

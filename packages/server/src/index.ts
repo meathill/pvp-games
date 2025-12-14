@@ -11,7 +11,7 @@ export function createServerConfig(overrides: Partial<Omit<ServerConfig, 'shared
   return {
     port: overrides.port ?? 3000,
     protocol: overrides.protocol ?? 'webrtc',
-    shared: createSharedContext({ project: 'pvp-games' })
+    shared: createSharedContext({ project: 'pvp-games' }),
   };
 }
 

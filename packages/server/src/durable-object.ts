@@ -1,6 +1,6 @@
 /**
  * Cloudflare Durable Object for game room management
- * 
+ *
  * Handles:
  * - WebRTC signaling (offer/answer/ICE exchange)
  * - WebSocket relay when WebRTC fails
@@ -58,7 +58,7 @@ export class DODataExchanger {
       hostReady: false,
       guestReady: false,
       createdAt: Date.now(),
-      lastActivity: Date.now()
+      lastActivity: Date.now(),
     };
   }
 
@@ -113,7 +113,7 @@ export class DODataExchanger {
 
     return new Response(null, {
       status: 101,
-      webSocket: client
+      webSocket: client,
     });
   }
 
@@ -125,11 +125,11 @@ export class DODataExchanger {
       hostReady: this.roomState.hostReady,
       guestReady: this.roomState.guestReady,
       createdAt: this.roomState.createdAt,
-      lastActivity: this.roomState.lastActivity
+      lastActivity: this.roomState.lastActivity,
     };
 
     return new Response(JSON.stringify(info), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
   }
 
@@ -243,7 +243,7 @@ export class DODataExchanger {
    */
   async alarm(): Promise<void> {
     const now = Date.now();
-    
+
     if (now - this.roomState.lastActivity > ROOM_TIMEOUT_MS) {
       // Room has been inactive, clean up
       if (this.roomState.host) {

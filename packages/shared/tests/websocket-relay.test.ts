@@ -62,7 +62,8 @@ const originalWebSocket = globalThis.WebSocket;
 describe('WebSocketRelayEndpoint', () => {
   beforeEach(() => {
     // Replace global WebSocket with mock
-    (globalThis as unknown as { WebSocket: typeof MockWebSocket }).WebSocket = MockWebSocket as unknown as typeof WebSocket;
+    (globalThis as unknown as { WebSocket: typeof MockWebSocket }).WebSocket =
+      MockWebSocket as unknown as typeof WebSocket;
   });
 
   afterEach(() => {
@@ -74,7 +75,7 @@ describe('WebSocketRelayEndpoint', () => {
     const endpoint = new WebSocketRelayEndpoint<{ type: string }>({
       role: 'host',
       roomId: 'test-room',
-      serverUrl: 'wss://example.com/ws'
+      serverUrl: 'wss://example.com/ws',
     });
 
     await endpoint.connect();
@@ -101,7 +102,7 @@ describe('WebSocketRelayEndpoint', () => {
     const endpoint = new WebSocketRelayEndpoint<{ type: string }>({
       role: 'host',
       roomId: 'test-room',
-      serverUrl: 'wss://example.com/ws'
+      serverUrl: 'wss://example.com/ws',
     });
 
     await endpoint.connect();
@@ -111,7 +112,7 @@ describe('WebSocketRelayEndpoint', () => {
 
     const messages = mockWs!.getSentMessages();
     expect(messages.length).toBeGreaterThan(0);
-    
+
     const joinMessage = JSON.parse(messages[0]);
     expect(joinMessage.type).toBe('join');
     expect(joinMessage.role).toBe('host');
@@ -133,7 +134,7 @@ describe('WebSocketRelayEndpoint', () => {
     const endpoint = new WebSocketRelayEndpoint<{ type: string }>({
       role: 'host',
       roomId: 'test-room',
-      serverUrl: 'wss://example.com/ws'
+      serverUrl: 'wss://example.com/ws',
     });
 
     await endpoint.connect();
@@ -179,7 +180,7 @@ describe('WebSocketRelayEndpoint', () => {
     const endpoint = new WebSocketRelayEndpoint<{ type: string; value: number }>({
       role: 'guest',
       roomId: 'test-room',
-      serverUrl: 'wss://example.com/ws'
+      serverUrl: 'wss://example.com/ws',
     });
 
     endpoint.subscribe((envelope) => {
@@ -197,9 +198,9 @@ describe('WebSocketRelayEndpoint', () => {
         envelope: {
           from: 'host',
           payload: { type: 'test', value: 42 },
-          createdAt: Date.now()
-        }
-      }
+          createdAt: Date.now(),
+        },
+      },
     });
 
     expect(received.length).toBe(1);
@@ -225,7 +226,7 @@ describe('WebSocketRelayEndpoint', () => {
       role: 'host',
       roomId: 'test-room',
       serverUrl: 'wss://example.com/ws',
-      onReady
+      onReady,
     });
 
     await endpoint.connect();
@@ -245,7 +246,7 @@ describe('WebSocketRelayEndpoint', () => {
     const endpoint = new WebSocketRelayEndpoint<{ type: string }>({
       role: 'host',
       roomId: 'test-room',
-      serverUrl: 'wss://example.com/ws'
+      serverUrl: 'wss://example.com/ws',
     });
 
     await endpoint.connect();

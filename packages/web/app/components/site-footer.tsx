@@ -10,14 +10,22 @@ function FooterLink({ link }: { link: NavLink }) {
 
   if (link.external) {
     return (
-      <a key={link.label} href={link.href} target="_blank" rel="noreferrer" className={className}>
+      <a
+        key={link.label}
+        href={link.href}
+        target="_blank"
+        rel="noreferrer"
+        className={className}>
         {link.label}
       </a>
     );
   }
 
   return (
-    <Link key={link.label} href={link.href} className={className}>
+    <Link
+      key={link.label}
+      href={link.href}
+      className={className}>
       {link.label}
     </Link>
   );
@@ -34,7 +42,10 @@ export function SiteFooter() {
         </div>
         <div className="flex flex-wrap gap-2">
           {footerLinks.map((link) => (
-            <FooterLink key={link.label} link={link} />
+            <FooterLink
+              key={link.label}
+              link={link}
+            />
           ))}
         </div>
       </div>

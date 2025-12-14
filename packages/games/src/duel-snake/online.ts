@@ -49,7 +49,7 @@ export class DuelSnakeOnlineHost {
   private readonly ready: ReadyTracker = { host: false, guest: false };
   private readonly roleToPlayer: Record<PeerRole, 'p1' | 'p2'> = {
     host: 'p1',
-    guest: 'p2'
+    guest: 'p2',
   };
   private readonly onStateChange?: (state: DuelSnakeState) => void;
   private readonly onError?: (error: Error) => void;
@@ -168,7 +168,7 @@ export class DuelSnakeOnlineHost {
           this.inputBuffer.push({
             direction: payload.direction,
             receivedAt: Date.now(),
-            clientTick: payload.clientTick
+            clientTick: payload.clientTick,
           });
           // Trim buffer if too large
           while (this.inputBuffer.length > this.maxInputBuffer) {
@@ -186,7 +186,7 @@ export class DuelSnakeOnlineHost {
           this.channel.send({
             type: 'pong',
             timestamp: payload.timestamp,
-            serverTime: Date.now()
+            serverTime: Date.now(),
           });
           break;
       }
@@ -217,7 +217,7 @@ export class DuelSnakeOnlineHost {
       type: 'state',
       state: this.state,
       tick: this.tickCount,
-      serverTime: Date.now()
+      serverTime: Date.now(),
     });
   }
 }
@@ -259,7 +259,7 @@ export class DuelSnakeOnlineClient {
     this.channel.send({
       type: 'input',
       direction,
-      clientTick: this.localTickCount
+      clientTick: this.localTickCount,
     });
   }
 

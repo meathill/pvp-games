@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 // Note: Testing Durable Objects requires mocking Cloudflare's runtime.
 // These tests verify the logic without the actual Cloudflare environment.
@@ -22,7 +22,7 @@ function createMockWebSocket(): MockWebSocket {
     },
     close(code?: number, reason?: string) {
       this.readyState = 3; // CLOSED
-    }
+    },
   };
 }
 
@@ -36,7 +36,7 @@ describe('DODataExchanger logic', () => {
         hostReady: false,
         guestReady: false,
         createdAt: Date.now(),
-        lastActivity: Date.now()
+        lastActivity: Date.now(),
       };
 
       // Initially both slots are empty
@@ -64,7 +64,7 @@ describe('DODataExchanger logic', () => {
         hostReady: false,
         guestReady: false,
         createdAt: Date.now(),
-        lastActivity: Date.now()
+        lastActivity: Date.now(),
       };
 
       // Host slot is taken
@@ -99,12 +99,11 @@ describe('DODataExchanger logic', () => {
 
     it('forwards game messages between peers', () => {
       const hostWs = createMockWebSocket();
-      const guestWs = createMockWebSocket();
 
       // Simulate forwarding a game message from guest to host
       const gameMessage: RelayWireMessage = {
         type: 'game',
-        message: { type: 'input', direction: 'up' }
+        message: { type: 'input', direction: 'up' },
       };
 
       // In real DO, this would be:
@@ -120,7 +119,6 @@ describe('DODataExchanger logic', () => {
       const clientWs = createMockWebSocket();
 
       // Simulate ping handling
-      const pingMessage: RelayWireMessage = { type: 'ping' };
       const pongMessage: RelayWireMessage = { type: 'pong' };
 
       // In real DO, receiving ping would trigger sending pong
@@ -144,7 +142,7 @@ describe('DODataExchanger logic', () => {
         hostReady: false,
         guestReady: false,
         createdAt: Date.now(),
-        lastActivity: Date.now()
+        lastActivity: Date.now(),
       };
 
       // Check if room is ready (both connected)
@@ -163,11 +161,10 @@ describe('DODataExchanger logic', () => {
 
     it('notifies peer when other leaves', () => {
       const hostWs = createMockWebSocket();
-      const guestWs = createMockWebSocket();
 
       // Guest leaves
       const leaveMessage: RelayWireMessage = { type: 'leave', role: 'guest' };
-      
+
       // Notify host that guest left
       hostWs.send(JSON.stringify(leaveMessage));
 
@@ -180,7 +177,7 @@ describe('DODataExchanger logic', () => {
     it('cleans up on timeout', () => {
       const ROOM_TIMEOUT_MS = 30 * 60 * 1000;
       const now = Date.now();
-      
+
       const state: RoomState = {
         id: 'test-room',
         host: createMockWebSocket() as unknown as WebSocket,
@@ -188,7 +185,7 @@ describe('DODataExchanger logic', () => {
         hostReady: true,
         guestReady: true,
         createdAt: now - ROOM_TIMEOUT_MS - 1000,
-        lastActivity: now - ROOM_TIMEOUT_MS - 1000
+        lastActivity: now - ROOM_TIMEOUT_MS - 1000,
       };
 
       const isTimedOut = now - state.lastActivity > ROOM_TIMEOUT_MS;
