@@ -449,15 +449,7 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
     if (isConnectingRef.current) return;
     isConnectingRef.current = true;
 
-    const endpoint = new HybridTransport(
-      role,
-      serverUrl,
-      roomId,
-      setStatus,
-      setError,
-      setTransport,
-      setLatency,
-    );
+    const endpoint = new HybridTransport(role, serverUrl, roomId, setStatus, setError, setTransport, setLatency);
     transportRef.current = endpoint;
 
     endpoint.connect().catch((err) => {
@@ -675,7 +667,10 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
             color: PLAYER_COLORS[myPlayer].text,
             boxShadow: `0 0 0 1px ${PLAYER_COLORS[myPlayer].stroke}`,
           }}>
-          <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: PLAYER_COLORS[myPlayer].primary }} />
+          <span
+            className="h-3 w-3 rounded-sm"
+            style={{ backgroundColor: PLAYER_COLORS[myPlayer].primary }}
+          />
           <span className="font-semibold">你: {state.players[myPlayer].score}</span>
         </div>
         <div className="text-slate-400">vs</div>
@@ -686,7 +681,10 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
             color: PLAYER_COLORS[opponentPlayer].text,
             boxShadow: `0 0 0 1px ${PLAYER_COLORS[opponentPlayer].stroke}`,
           }}>
-          <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: PLAYER_COLORS[opponentPlayer].primary }} />
+          <span
+            className="h-3 w-3 rounded-sm"
+            style={{ backgroundColor: PLAYER_COLORS[opponentPlayer].primary }}
+          />
           <span className="font-semibold">对手: {state.players[opponentPlayer].score}</span>
         </div>
         <div className="text-sm text-slate-500 dark:text-slate-400">目标: {state.targetScore}</div>

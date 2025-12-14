@@ -29,6 +29,102 @@ const TURN_SERVERS: IceServer[] = [
   // { urls: 'turn:your-turn-server.com:3478', username: 'user', credential: 'pass' },
 ];
 
+// Map Cloudflare colo codes to supported DurableObjectLocationHint values
+// See: https://developers.cloudflare.com/durable-objects/reference/data-location/
+const COLO_TO_HINT: Record<string, DurableObjectLocationHint> = {
+  // Western North America
+  LAX: 'wnam',
+  SJC: 'wnam',
+  SEA: 'wnam',
+  PDX: 'wnam',
+  SFO: 'wnam',
+  PHX: 'wnam',
+  DEN: 'wnam',
+  LAS: 'wnam',
+  // Eastern North America
+  EWR: 'enam',
+  IAD: 'enam',
+  ATL: 'enam',
+  MIA: 'enam',
+  ORD: 'enam',
+  DFW: 'enam',
+  BOS: 'enam',
+  CLT: 'enam',
+  YYZ: 'enam',
+  YUL: 'enam',
+  // Western Europe
+  LHR: 'weur',
+  CDG: 'weur',
+  AMS: 'weur',
+  FRA: 'weur',
+  MAD: 'weur',
+  MXP: 'weur',
+  ZRH: 'weur',
+  BRU: 'weur',
+  DUB: 'weur',
+  MAN: 'weur',
+  ARN: 'weur',
+  CPH: 'weur',
+  OSL: 'weur',
+  HEL: 'weur',
+  VIE: 'weur',
+  WAW: 'weur',
+  // Eastern Europe
+  KBP: 'eeur',
+  SOF: 'eeur',
+  OTP: 'eeur',
+  BUD: 'eeur',
+  PRG: 'eeur',
+  // Asia Pacific
+  NRT: 'apac',
+  HND: 'apac',
+  HKG: 'apac',
+  SIN: 'apac',
+  ICN: 'apac',
+  TPE: 'apac',
+  BKK: 'apac',
+  KUL: 'apac',
+  SYD: 'apac',
+  MEL: 'apac',
+  BOM: 'apac',
+  DEL: 'apac',
+  MAA: 'apac',
+  CGK: 'apac',
+  MNL: 'apac',
+  // South America
+  GRU: 'sam',
+  GIG: 'sam',
+  EZE: 'sam',
+  SCL: 'sam',
+  BOG: 'sam',
+  LIM: 'sam',
+  // Africa
+  JNB: 'afr',
+  CPT: 'afr',
+  LOS: 'afr',
+  NBO: 'afr',
+  CAI: 'afr',
+  // Middle East
+  DXB: 'me',
+  DOH: 'me',
+  TLV: 'me',
+  BAH: 'me',
+  KWI: 'me',
+  // Oceania (map to apac)
+  AKL: 'apac',
+  PER: 'apac',
+  BNE: 'apac',
+};
+
+/**
+ * Map a Cloudflare colo code to a supported DurableObjectLocationHint
+ * Returns undefined if the colo is not recognized (DO will use default placement)
+ */
+function mapColoToLocationHint(colo: string | undefined): DurableObjectLocationHint | undefined {
+  if (!colo) return undefined;
+  return COLO_TO_HINT[colo.toUpperCase()];
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -70,13 +166,18 @@ export default {
         });
       }
 
-      // Use locationHint to place DO near the host (room creator)
-      // The host connects first, so the DO will be placed near them
-      const locationHint = request.cf?.colo as DurableObjectLocationHint | undefined;
-
       // Get or create the Durable Object for this room
       const id = env.ROOM.idFromName(roomId);
-      const room = env.ROOM.get(id, locationHint ? { locationHint } : undefined);
+
+      // Use locationHint to place DO near the host (room creator)
+      // Only apply hint for host (first connection), map colo to supported region
+      let room: DurableObjectStub;
+      if (role === 'host') {
+        const hint = mapColoToLocationHint(request.cf?.colo as string | undefined);
+        room = hint ? env.ROOM.get(id, { locationHint: hint }) : env.ROOM.get(id);
+      } else {
+        room = env.ROOM.get(id);
+      }
 
       // Forward the request to the Durable Object
       return room.fetch(request);
