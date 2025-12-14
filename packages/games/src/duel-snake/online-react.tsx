@@ -4,10 +4,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { Direction, DuelSnakeState, PlayerId } from './engine';
 import { DuelSnakeOnlineHost, DuelSnakeOnlineClient, type DuelSnakeWireMessage } from './online';
-import type { RealtimeEndpoint, RealtimeEnvelope, PeerRole } from '@pvp-games/shared';
+import type { RealtimeEndpoint, RealtimeEnvelope, PeerRole, SignalingMessage } from '@pvp-games/shared';
 
+// Game rendering constants
 const CELL_SIZE = 18;
 const CELL_GAP = 2;
+
+// Network constants
+const TARGET_FPS = 20; // 20 frames per second = 50ms per tick
+const TICK_INTERVAL_MS = 1000 / TARGET_FPS;
+const WEBRTC_TIMEOUT_MS = 5000; // Give WebRTC 5 seconds to connect
+const PING_INTERVAL_MS = 2000;
 
 export const PLAYER_COLORS: Record<PlayerId, { primary: string; stroke: string; light: string; text: string }> = {
   p1: {
@@ -24,7 +31,8 @@ export const PLAYER_COLORS: Record<PlayerId, { primary: string; stroke: string; 
   },
 };
 
-type ConnectionStatus = 'disconnected' | 'connecting' | 'waiting' | 'ready' | 'playing' | 'error';
+type ConnectionStatus = 'disconnected' | 'connecting' | 'waiting' | 'signaling' | 'ready' | 'playing' | 'error';
+type TransportType = 'webrtc' | 'websocket';
 
 export interface DuelSnakeOnlineProps {
   serverUrl: string;
@@ -33,14 +41,26 @@ export interface DuelSnakeOnlineProps {
   onLeave?: () => void;
 }
 
-/** Simple WebSocket-based RealtimeEndpoint for online play */
-class WebSocketEndpoint implements RealtimeEndpoint<DuelSnakeWireMessage> {
+/**
+ * Hybrid transport that tries WebRTC first, falls back to WebSocket
+ */
+class HybridTransport implements RealtimeEndpoint<DuelSnakeWireMessage> {
   public readonly role: PeerRole;
   private ws: WebSocket | null = null;
+  private pc: RTCPeerConnection | null = null;
+  private dataChannel: RTCDataChannel | null = null;
   private listeners = new Set<(envelope: RealtimeEnvelope<DuelSnakeWireMessage>) => void>();
   private pendingMessages: DuelSnakeWireMessage[] = [];
-  private roomReady = false;
   private disposed = false;
+  private roomReady = false;
+  private webrtcReady = false;
+  private iceServers: RTCIceServer[] = [];
+  private webrtcTimeout: number | null = null;
+  private pingInterval: number | null = null;
+  private lastPingTime = 0;
+
+  public transportType: TransportType = 'websocket';
+  public latency = 0;
 
   constructor(
     role: PeerRole,
@@ -48,6 +68,8 @@ class WebSocketEndpoint implements RealtimeEndpoint<DuelSnakeWireMessage> {
     private readonly roomId: string,
     private readonly onStatusChange: (status: ConnectionStatus) => void,
     private readonly onError: (error: string) => void,
+    private readonly onTransportChange?: (type: TransportType) => void,
+    private readonly onLatencyUpdate?: (latency: number) => void,
   ) {
     this.role = role;
   }
@@ -55,7 +77,7 @@ class WebSocketEndpoint implements RealtimeEndpoint<DuelSnakeWireMessage> {
   async connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       if (this.disposed) {
-        reject(new Error('Endpoint disposed'));
+        reject(new Error('Transport disposed'));
         return;
       }
 
@@ -76,50 +98,13 @@ class WebSocketEndpoint implements RealtimeEndpoint<DuelSnakeWireMessage> {
       this.ws.onopen = () => {
         if (this.disposed) return;
         this.onStatusChange('waiting');
+        this.startPingInterval();
         resolve();
       };
 
       this.ws.onmessage = (event) => {
         if (this.disposed) return;
-        try {
-          const data = JSON.parse(event.data);
-
-          if (data.type === 'room-ready') {
-            this.roomReady = true;
-            this.onStatusChange('ready');
-            // Flush pending messages
-            for (const msg of this.pendingMessages) {
-              this.send(msg);
-            }
-            this.pendingMessages = [];
-            return;
-          }
-
-          if (data.type === 'leave') {
-            this.onError('对方已离开房间');
-            this.onStatusChange('disconnected');
-            return;
-          }
-
-          if (data.type === 'joined') {
-            return;
-          }
-
-          // Forward game messages to listeners
-          if (data.from && data.payload) {
-            this.listeners.forEach((listener) => listener(data));
-          } else if (data.type) {
-            // Wrap raw messages in envelope format
-            const envelope: RealtimeEnvelope<DuelSnakeWireMessage> = {
-              from: this.role === 'host' ? 'guest' : 'host',
-              payload: data,
-              createdAt: Date.now(),
-            };
-            this.listeners.forEach((listener) => listener(envelope));
-          }
-        } catch (error) {
-          console.error('Failed to parse message:', error);
-        }
+        this.handleWebSocketMessage(event.data);
       };
 
       this.ws.onerror = () => {
@@ -130,6 +115,7 @@ class WebSocketEndpoint implements RealtimeEndpoint<DuelSnakeWireMessage> {
 
       this.ws.onclose = (event) => {
         if (this.disposed) return;
+        this.stopPingInterval();
         if (event.code !== 1000) {
           this.onStatusChange('error');
           this.onError(`连接已断开 (${event.code})`);
@@ -140,8 +126,255 @@ class WebSocketEndpoint implements RealtimeEndpoint<DuelSnakeWireMessage> {
     });
   }
 
+  private handleWebSocketMessage(data: string): void {
+    try {
+      const msg = JSON.parse(data);
+
+      switch (msg.type) {
+        case 'joined':
+          // Just confirmation, wait for room-ready
+          break;
+
+        case 'room-ready':
+          this.roomReady = true;
+          this.iceServers = msg.iceServers || [];
+          this.onStatusChange('signaling');
+          this.initiateWebRTC();
+          break;
+
+        case 'leave':
+          this.onError('对方已离开房间');
+          this.onStatusChange('disconnected');
+          break;
+
+        case 'pong':
+          this.latency = Date.now() - this.lastPingTime;
+          this.onLatencyUpdate?.(this.latency);
+          break;
+
+        // WebRTC signaling messages
+        case 'offer':
+          this.handleOffer(msg.sdp);
+          break;
+
+        case 'answer':
+          this.handleAnswer(msg.sdp);
+          break;
+
+        case 'ice-candidate':
+          this.handleIceCandidate(msg.candidate);
+          break;
+
+        // Game messages (WebSocket relay fallback)
+        case 'game':
+          if (!this.webrtcReady) {
+            this.dispatchGameMessage(msg.payload);
+          }
+          break;
+
+        default:
+          // Try to dispatch as game message
+          if (msg.from && msg.payload) {
+            if (!this.webrtcReady) {
+              this.listeners.forEach((listener) => listener(msg));
+            }
+          } else if (msg.type) {
+            // Wrap raw messages
+            const envelope: RealtimeEnvelope<DuelSnakeWireMessage> = {
+              from: this.role === 'host' ? 'guest' : 'host',
+              payload: msg,
+              createdAt: Date.now(),
+            };
+            if (!this.webrtcReady) {
+              this.listeners.forEach((listener) => listener(envelope));
+            }
+          }
+      }
+    } catch (error) {
+      console.error('Failed to parse WebSocket message:', error);
+    }
+  }
+
+  private initiateWebRTC(): void {
+    if (this.disposed) return;
+
+    // Set timeout for WebRTC connection
+    this.webrtcTimeout = window.setTimeout(() => {
+      if (!this.webrtcReady) {
+        console.log('WebRTC timeout, using WebSocket relay');
+        this.transportType = 'websocket';
+        this.onTransportChange?.('websocket');
+        this.onStatusChange('ready');
+        this.notifyWebRTCFailed();
+        this.flushPendingMessages();
+      }
+    }, WEBRTC_TIMEOUT_MS);
+
+    this.pc = new RTCPeerConnection({ iceServers: this.iceServers });
+
+    this.pc.onicecandidate = (event) => {
+      if (event.candidate && this.ws?.readyState === WebSocket.OPEN) {
+        this.ws.send(
+          JSON.stringify({
+            type: 'ice-candidate',
+            candidate: event.candidate.toJSON(),
+          }),
+        );
+      }
+    };
+
+    this.pc.onconnectionstatechange = () => {
+      if (this.pc?.connectionState === 'failed' || this.pc?.connectionState === 'disconnected') {
+        if (this.webrtcReady) {
+          // WebRTC was working but disconnected, fall back to WebSocket
+          console.log('WebRTC disconnected, falling back to WebSocket');
+          this.webrtcReady = false;
+          this.transportType = 'websocket';
+          this.onTransportChange?.('websocket');
+        }
+      }
+    };
+
+    if (this.role === 'host') {
+      // Host creates data channel and offer
+      this.dataChannel = this.pc.createDataChannel('game', { ordered: true });
+      this.setupDataChannel(this.dataChannel);
+
+      this.pc.createOffer().then((offer) => {
+        return this.pc!.setLocalDescription(offer).then(() => {
+          if (this.ws?.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({ type: 'offer', sdp: offer.sdp }));
+          }
+        });
+      });
+    } else {
+      // Guest waits for data channel
+      this.pc.ondatachannel = (event) => {
+        this.dataChannel = event.channel;
+        this.setupDataChannel(this.dataChannel);
+      };
+    }
+  }
+
+  private async handleOffer(sdp: string): Promise<void> {
+    if (!this.pc || this.role !== 'guest') return;
+
+    try {
+      await this.pc.setRemoteDescription({ type: 'offer', sdp });
+      const answer = await this.pc.createAnswer();
+      await this.pc.setLocalDescription(answer);
+
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify({ type: 'answer', sdp: answer.sdp }));
+      }
+    } catch (error) {
+      console.error('Failed to handle offer:', error);
+    }
+  }
+
+  private async handleAnswer(sdp: string): Promise<void> {
+    if (!this.pc || this.role !== 'host') return;
+
+    try {
+      await this.pc.setRemoteDescription({ type: 'answer', sdp });
+    } catch (error) {
+      console.error('Failed to handle answer:', error);
+    }
+  }
+
+  private async handleIceCandidate(candidate: RTCIceCandidateInit): Promise<void> {
+    if (!this.pc) return;
+
+    try {
+      await this.pc.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (error) {
+      console.error('Failed to add ICE candidate:', error);
+    }
+  }
+
+  private setupDataChannel(channel: RTCDataChannel): void {
+    channel.onopen = () => {
+      console.log('WebRTC DataChannel opened');
+      if (this.webrtcTimeout) {
+        clearTimeout(this.webrtcTimeout);
+        this.webrtcTimeout = null;
+      }
+
+      this.webrtcReady = true;
+      this.transportType = 'webrtc';
+      this.onTransportChange?.('webrtc');
+      this.onStatusChange('ready');
+      this.notifyWebRTCReady();
+      this.flushPendingMessages();
+    };
+
+    channel.onmessage = (event) => {
+      this.dispatchGameMessage(JSON.parse(event.data));
+    };
+
+    channel.onerror = (event) => {
+      console.error('DataChannel error:', event);
+    };
+
+    channel.onclose = () => {
+      console.log('DataChannel closed');
+      if (this.webrtcReady) {
+        this.webrtcReady = false;
+        this.transportType = 'websocket';
+        this.onTransportChange?.('websocket');
+      }
+    };
+  }
+
+  private dispatchGameMessage(payload: DuelSnakeWireMessage): void {
+    const envelope: RealtimeEnvelope<DuelSnakeWireMessage> = {
+      from: this.role === 'host' ? 'guest' : 'host',
+      payload,
+      createdAt: Date.now(),
+    };
+    this.listeners.forEach((listener) => listener(envelope));
+  }
+
+  private notifyWebRTCReady(): void {
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type: 'webrtc-ready' }));
+    }
+  }
+
+  private notifyWebRTCFailed(): void {
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type: 'webrtc-failed' }));
+    }
+  }
+
+  private flushPendingMessages(): void {
+    for (const msg of this.pendingMessages) {
+      this.send(msg);
+    }
+    this.pendingMessages = [];
+  }
+
+  private startPingInterval(): void {
+    this.pingInterval = window.setInterval(() => {
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        this.lastPingTime = Date.now();
+        this.ws.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, PING_INTERVAL_MS);
+  }
+
+  private stopPingInterval(): void {
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
+    }
+  }
+
   send(payload: DuelSnakeWireMessage): void {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+    if (this.disposed) return;
+
+    // If neither transport is ready, buffer the message
+    if (!this.webrtcReady && (!this.ws || this.ws.readyState !== WebSocket.OPEN || !this.roomReady)) {
       this.pendingMessages.push(payload);
       return;
     }
@@ -152,7 +385,20 @@ class WebSocketEndpoint implements RealtimeEndpoint<DuelSnakeWireMessage> {
       createdAt: Date.now(),
     };
 
-    this.ws.send(JSON.stringify(envelope));
+    // Prefer WebRTC if available
+    if (this.webrtcReady && this.dataChannel?.readyState === 'open') {
+      try {
+        this.dataChannel.send(JSON.stringify(payload));
+        return;
+      } catch (error) {
+        console.warn('WebRTC send failed, falling back to WebSocket');
+      }
+    }
+
+    // Fall back to WebSocket
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type: 'game', payload }));
+    }
   }
 
   subscribe(listener: (envelope: RealtimeEnvelope<DuelSnakeWireMessage>) => void): () => void {
@@ -164,13 +410,24 @@ class WebSocketEndpoint implements RealtimeEndpoint<DuelSnakeWireMessage> {
 
   dispose(): void {
     this.disposed = true;
+    this.stopPingInterval();
+
+    if (this.webrtcTimeout) {
+      clearTimeout(this.webrtcTimeout);
+    }
+
+    this.dataChannel?.close();
+    this.pc?.close();
     this.ws?.close(1000, 'Leaving');
+
     this.ws = null;
+    this.pc = null;
+    this.dataChannel = null;
     this.listeners.clear();
   }
 
   isReady(): boolean {
-    return this.roomReady && this.ws?.readyState === WebSocket.OPEN;
+    return this.webrtcReady || (this.roomReady && this.ws?.readyState === WebSocket.OPEN);
   }
 }
 
@@ -179,8 +436,9 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
   const [error, setError] = useState<string | null>(null);
   const [state, setState] = useState<DuelSnakeState | null>(null);
   const [latency, setLatency] = useState<number>(0);
+  const [transport, setTransport] = useState<TransportType>('websocket');
 
-  const endpointRef = useRef<WebSocketEndpoint | null>(null);
+  const transportRef = useRef<HybridTransport | null>(null);
   const hostRef = useRef<DuelSnakeOnlineHost | null>(null);
   const clientRef = useRef<DuelSnakeOnlineClient | null>(null);
   const tickIntervalRef = useRef<number | null>(null);
@@ -188,12 +446,19 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
 
   // Connect to room
   useEffect(() => {
-    // Prevent double connection in React Strict Mode
     if (isConnectingRef.current) return;
     isConnectingRef.current = true;
 
-    const endpoint = new WebSocketEndpoint(role, serverUrl, roomId, setStatus, setError);
-    endpointRef.current = endpoint;
+    const endpoint = new HybridTransport(
+      role,
+      serverUrl,
+      roomId,
+      setStatus,
+      setError,
+      setTransport,
+      setLatency,
+    );
+    transportRef.current = endpoint;
 
     endpoint.connect().catch((err) => {
       setError(err.message || '连接失败');
@@ -211,18 +476,18 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
     };
   }, [serverUrl, roomId, role]);
 
-  // Initialize game when room is ready
+  // Initialize game when ready
   useEffect(() => {
     if (status !== 'ready') return;
 
-    const endpoint = endpointRef.current;
+    const endpoint = transportRef.current;
     if (!endpoint) return;
 
     if (role === 'host') {
       const host = new DuelSnakeOnlineHost({
         channel: endpoint,
         seed: `${roomId}-${Date.now()}`,
-        tickIntervalMs: 150,
+        tickIntervalMs: TICK_INTERVAL_MS,
         onStateChange: (newState) => {
           setState(newState);
           if (newState.status === 'running') {
@@ -233,8 +498,6 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
       });
       hostRef.current = host;
       setState(host.getState());
-
-      // Auto-ready as host
       host.markReady();
     } else {
       const client = new DuelSnakeOnlineClient({
@@ -245,17 +508,18 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
             setStatus('playing');
           }
         },
-        onLatencyUpdate: setLatency,
+        onLatencyUpdate: (l) => {
+          // Combine transport latency with game latency
+          setLatency((endpoint.latency + l) / 2);
+        },
         onError: (err) => setError(err.message),
       });
       clientRef.current = client;
-
-      // Auto-ready as guest
       client.markReady();
     }
   }, [status, role, roomId]);
 
-  // Start tick loop for host
+  // Tick loop for host
   useEffect(() => {
     if (status !== 'playing' || role !== 'host') return;
 
@@ -264,16 +528,16 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
 
     tickIntervalRef.current = window.setInterval(() => {
       host.tick();
-    }, state?.tickIntervalMs || 150);
+    }, TICK_INTERVAL_MS);
 
     return () => {
       if (tickIntervalRef.current) {
         clearInterval(tickIntervalRef.current);
       }
     };
-  }, [status, role, state?.tickIntervalMs]);
+  }, [status, role]);
 
-  // Handle keyboard input
+  // Keyboard input
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const keyMap: Record<string, Direction> = {
@@ -304,7 +568,7 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
   }, [role]);
 
   const handleLeave = useCallback(() => {
-    endpointRef.current?.dispose();
+    transportRef.current?.dispose();
     onLeave?.();
   }, [onLeave]);
 
@@ -313,9 +577,11 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
       case 'disconnected':
         return '已断开连接';
       case 'connecting':
-        return '正在连接...';
+        return '正在连接服务器...';
       case 'waiting':
         return role === 'host' ? '等待对手加入...' : '正在加入房间...';
+      case 'signaling':
+        return '正在建立 P2P 连接...';
       case 'ready':
         return '准备开始...';
       case 'playing':
@@ -330,7 +596,9 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
     }
   }, [status, state, role]);
 
-  // Render waiting screen
+  const transportLabel = transport === 'webrtc' ? 'P2P' : '中继';
+
+  // Waiting screen
   if (status !== 'playing' || !state) {
     return (
       <div className="flex min-h-[400px] flex-col items-center justify-center gap-4 rounded-2xl bg-white/80 p-8 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:ring-slate-700">
@@ -342,6 +610,12 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
             <div className="rounded-lg bg-slate-100 px-4 py-2 font-mono text-2xl font-bold text-slate-900 dark:bg-slate-700 dark:text-slate-50">
               {roomId}
             </div>
+          </div>
+        )}
+
+        {status === 'signaling' && (
+          <div className="text-sm text-slate-500 dark:text-slate-400">
+            正在尝试建立点对点连接，如失败将使用服务器中继...
           </div>
         )}
 
@@ -361,7 +635,7 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
     );
   }
 
-  // Render game
+  // Game board
   const width = state.dimensions.width;
   const height = state.dimensions.height;
   const p1Cells = new Set(state.players.p1.segments.map((cell) => `${cell.x},${cell.y}`));
@@ -376,9 +650,13 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-white/80 px-5 py-4 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:ring-slate-700">
         <div className="flex items-center gap-4">
           <div className="text-sm font-medium text-slate-600 dark:text-slate-300">{statusText}</div>
-          {latency > 0 && (
-            <div className="text-xs text-slate-500 dark:text-slate-400">延迟: {Math.round(latency)}ms</div>
-          )}
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <span
+              className={`inline-block h-2 w-2 rounded-full ${transport === 'webrtc' ? 'bg-green-500' : 'bg-yellow-500'}`}
+            />
+            <span>{transportLabel}</span>
+            {latency > 0 && <span>· {Math.round(latency)}ms</span>}
+          </div>
         </div>
         <button
           type="button"
@@ -397,10 +675,7 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
             color: PLAYER_COLORS[myPlayer].text,
             boxShadow: `0 0 0 1px ${PLAYER_COLORS[myPlayer].stroke}`,
           }}>
-          <span
-            className="h-3 w-3 rounded-sm"
-            style={{ backgroundColor: PLAYER_COLORS[myPlayer].primary }}
-          />
+          <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: PLAYER_COLORS[myPlayer].primary }} />
           <span className="font-semibold">你: {state.players[myPlayer].score}</span>
         </div>
         <div className="text-slate-400">vs</div>
@@ -411,10 +686,7 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
             color: PLAYER_COLORS[opponentPlayer].text,
             boxShadow: `0 0 0 1px ${PLAYER_COLORS[opponentPlayer].stroke}`,
           }}>
-          <span
-            className="h-3 w-3 rounded-sm"
-            style={{ backgroundColor: PLAYER_COLORS[opponentPlayer].primary }}
-          />
+          <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: PLAYER_COLORS[opponentPlayer].primary }} />
           <span className="font-semibold">对手: {state.players[opponentPlayer].score}</span>
         </div>
         <div className="text-sm text-slate-500 dark:text-slate-400">目标: {state.targetScore}</div>
@@ -459,7 +731,7 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
             return (
               <div
                 key={key}
-                className="h-[18px] w-[18px] rounded-sm bg-slate-200 ring-1 ring-slate-200 transition-colors duration-150 dark:bg-slate-700 dark:ring-slate-600"
+                className="h-[18px] w-[18px] rounded-sm bg-slate-200 ring-1 ring-slate-200 transition-colors duration-75 dark:bg-slate-700 dark:ring-slate-600"
                 style={fillStyle}
               />
             );

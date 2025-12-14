@@ -45,31 +45,41 @@ pvp-games/
                                         └─────────────┘
 ```
 
-当前使用 **WebSocket 消息中继** 模式：
-- 所有消息通过 Cloudflare Durable Object 中转
-- 简单可靠，延迟约 50-150ms（取决于地理位置）
+### 当前实现：混合传输
 
-### 未来规划：WebRTC P2P
+系统优先使用 **WebRTC P2P**，失败时自动回退到 **WebSocket 中继**：
 
 ```
 ┌─────────────┐     WebRTC DataChannel    ┌─────────────┐
-│   Host      │◄─────────────────────────►│   Guest     │
-│  (Browser)  │      点对点低延迟         │  (Browser)  │
-└──────┬──────┘                           └──────┬──────┘
-       │                                         │
-       │ 信令交换 (offer/answer/ICE)             │
-       └─────────────────┬───────────────────────┘
-                         │
+│   Host      │◄═══════════════════════►│   Guest     │
+│  (Browser)  │      P2P 低延迟          │  (Browser)  │
+└──────┬──────┘                          └──────┬──────┘
+       │                                        │
+       │ 信令交换 + 回退                         │
+       └─────────────────┬──────────────────────┘
+                         │ WebSocket
                   ┌──────┴──────┐
                   │  Signaling  │
-                  │   Server    │
+                  │  (DO + Hib) │
                   └─────────────┘
 ```
 
-WebRTC 实现（代码已准备，待集成）：
-- 通过信令服务交换 offer/answer/ICE candidate
-- 建立直接 P2P 连接，延迟可降至 10-50ms
-- 当 WebRTC 失败时自动回退到 WebSocket
+**WebRTC P2P 模式（首选）：**
+- 直接点对点连接，延迟 10-50ms
+- 使用 Google STUN 服务器进行 NAT 穿透
+- 约 85-90% 的情况可以建立 P2P
+
+**WebSocket 中继模式（回退）：**
+- 当 WebRTC 失败时自动启用
+- 通过 Cloudflare Durable Object 中转
+- 延迟 50-150ms，但更可靠
+
+### 优化特性
+
+1. **Location Hints**：Durable Object 实例放置在房主最近的数据中心
+2. **Hibernation API**：WebSocket 空闲时休眠，降低成本
+3. **20 FPS 帧率**：优化的 50ms tick 间隔
+4. **自动回退**：WebRTC 5 秒超时后自动切换到 WebSocket
 
 ## 模块职责
 

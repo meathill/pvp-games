@@ -7,12 +7,24 @@ import { describe, expect, it } from 'vitest';
  * These tests verify the protocol and message handling logic.
  */
 
-// Message types used by the signaling protocol
-type RelayWireMessage =
+// ICE server type
+interface IceServer {
+  urls: string | string[];
+  username?: string;
+  credential?: string;
+}
+
+// Message types used by the signaling protocol (v2)
+type SignalingMessage =
   | { type: 'join'; role: 'host' | 'guest' }
   | { type: 'joined'; role: 'host' | 'guest' }
   | { type: 'leave'; role: 'host' | 'guest' }
-  | { type: 'room-ready' }
+  | { type: 'room-ready'; iceServers: IceServer[] }
+  | { type: 'offer'; sdp: string }
+  | { type: 'answer'; sdp: string }
+  | { type: 'ice-candidate'; candidate: { candidate?: string; sdpMid?: string | null } }
+  | { type: 'webrtc-ready' }
+  | { type: 'webrtc-failed' }
   | { type: 'ping' }
   | { type: 'pong' }
   | { type: 'game'; payload: unknown };
@@ -38,14 +50,19 @@ function createMockWebSocket(): MockWebSocket {
   };
 }
 
-describe('Signaling protocol', () => {
+describe('Signaling protocol v2', () => {
   describe('Message serialization', () => {
     it('serializes all message types correctly', () => {
-      const messages: RelayWireMessage[] = [
+      const messages: SignalingMessage[] = [
         { type: 'join', role: 'host' },
         { type: 'joined', role: 'guest' },
         { type: 'leave', role: 'host' },
-        { type: 'room-ready' },
+        { type: 'room-ready', iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] },
+        { type: 'offer', sdp: 'v=0\r\n...' },
+        { type: 'answer', sdp: 'v=0\r\n...' },
+        { type: 'ice-candidate', candidate: { candidate: 'candidate:...', sdpMid: '0' } },
+        { type: 'webrtc-ready' },
+        { type: 'webrtc-failed' },
         { type: 'ping' },
         { type: 'pong' },
         { type: 'game', payload: { direction: 'up' } },
@@ -78,17 +95,24 @@ describe('Signaling protocol', () => {
       expect(room.guest).not.toBeNull();
     });
 
-    it('sends room-ready when both peers connect', () => {
+    it('sends room-ready with ICE servers when both peers connect', () => {
       const host = createMockWebSocket();
       const guest = createMockWebSocket();
 
-      // Simulate room-ready broadcast
-      const readyMessage = JSON.stringify({ type: 'room-ready' });
+      // Simulate room-ready broadcast with ICE servers
+      const readyMessage = JSON.stringify({
+        type: 'room-ready',
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+      });
       host.send(readyMessage);
       guest.send(readyMessage);
 
-      expect(host.sentMessages).toContain(readyMessage);
-      expect(guest.sentMessages).toContain(readyMessage);
+      expect(host.sentMessages.length).toBe(1);
+      expect(guest.sentMessages.length).toBe(1);
+
+      const hostMsg = JSON.parse(host.sentMessages[0]);
+      expect(hostMsg.type).toBe('room-ready');
+      expect(hostMsg.iceServers).toHaveLength(1);
     });
 
     it('notifies peer when other leaves', () => {
@@ -104,6 +128,44 @@ describe('Signaling protocol', () => {
     });
   });
 
+  describe('WebRTC signaling', () => {
+    it('forwards offer from host to guest', () => {
+      const guest = createMockWebSocket();
+      const offerMessage = JSON.stringify({ type: 'offer', sdp: 'v=0\r\no=...' });
+
+      guest.send(offerMessage);
+
+      const parsed = JSON.parse(guest.sentMessages[0]);
+      expect(parsed.type).toBe('offer');
+      expect(parsed.sdp).toBeDefined();
+    });
+
+    it('forwards answer from guest to host', () => {
+      const host = createMockWebSocket();
+      const answerMessage = JSON.stringify({ type: 'answer', sdp: 'v=0\r\no=...' });
+
+      host.send(answerMessage);
+
+      const parsed = JSON.parse(host.sentMessages[0]);
+      expect(parsed.type).toBe('answer');
+      expect(parsed.sdp).toBeDefined();
+    });
+
+    it('forwards ICE candidates between peers', () => {
+      const peer = createMockWebSocket();
+      const iceMessage = JSON.stringify({
+        type: 'ice-candidate',
+        candidate: { candidate: 'candidate:1 1 udp 2122260223 ...', sdpMid: '0' },
+      });
+
+      peer.send(iceMessage);
+
+      const parsed = JSON.parse(peer.sentMessages[0]);
+      expect(parsed.type).toBe('ice-candidate');
+      expect(parsed.candidate).toBeDefined();
+    });
+  });
+
   describe('Message forwarding', () => {
     it('forwards game messages to other peer', () => {
       const host = createMockWebSocket();
@@ -112,7 +174,6 @@ describe('Signaling protocol', () => {
         payload: { from: 'guest', direction: 'left' },
       });
 
-      // Simulate forwarding from guest to host
       host.send(gameMessage);
 
       expect(host.sentMessages.length).toBe(1);
@@ -125,7 +186,6 @@ describe('Signaling protocol', () => {
       const client = createMockWebSocket();
       const pongMessage = JSON.stringify({ type: 'pong' });
 
-      // Simulate ping -> pong response
       client.send(pongMessage);
 
       const parsed = JSON.parse(client.sentMessages[0]);

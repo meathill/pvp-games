@@ -2,12 +2,32 @@
  * PVP Games Signaling Worker
  *
  * Cloudflare Worker with Durable Object for real-time game room management.
- * Handles WebSocket connections for game signaling and message relay.
+ * Features:
+ * - WebRTC signaling (offer/answer/ICE exchange)
+ * - WebSocket relay fallback
+ * - Hibernation API for cost efficiency
+ * - Location hints for optimal latency
  */
 
 export interface Env {
   ROOM: DurableObjectNamespace;
 }
+
+// ICE server configuration type (mirrors browser RTCIceServer)
+interface IceServer {
+  urls: string | string[];
+  username?: string;
+  credential?: string;
+}
+
+// TURN server configuration (optional, set via environment)
+const TURN_SERVERS: IceServer[] = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun2.l.google.com:19302' },
+  // Add TURN servers here if needed for NAT traversal
+  // { urls: 'turn:your-turn-server.com:3478', username: 'user', credential: 'pass' },
+];
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -26,7 +46,14 @@ export default {
 
     // Health check
     if (url.pathname === '/health') {
-      return new Response(JSON.stringify({ status: 'ok' }), {
+      return new Response(JSON.stringify({ status: 'ok', version: '2.0' }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+    }
+
+    // ICE servers endpoint - client fetches this to get TURN/STUN config
+    if (url.pathname === '/ice-servers') {
+      return new Response(JSON.stringify({ iceServers: TURN_SERVERS }), {
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
       });
     }
@@ -43,9 +70,13 @@ export default {
         });
       }
 
+      // Use locationHint to place DO near the host (room creator)
+      // The host connects first, so the DO will be placed near them
+      const locationHint = request.cf?.colo as DurableObjectLocationHint | undefined;
+
       // Get or create the Durable Object for this room
       const id = env.ROOM.idFromName(roomId);
-      const room = env.ROOM.get(id);
+      const room = env.ROOM.get(id, locationHint ? { locationHint } : undefined);
 
       // Forward the request to the Durable Object
       return room.fetch(request);
@@ -69,32 +100,85 @@ export default {
 
     // Default response
     return new Response(
-      'PVP Games Signaling Server\n\n' +
+      'PVP Games Signaling Server v2.0\n\n' +
         'Endpoints:\n' +
         '- GET /health - Health check\n' +
+        '- GET /ice-servers - Get TURN/STUN configuration\n' +
         '- GET /api/room/:id - Room info\n' +
-        '- WS /ws?room=:id&role=host|guest - WebSocket connection',
+        '- WS /ws?room=:id&role=host|guest - WebSocket connection\n\n' +
+        'Features:\n' +
+        '- WebRTC signaling for P2P connections\n' +
+        '- WebSocket relay fallback\n' +
+        '- Hibernation API for efficiency\n' +
+        '- Location-aware DO placement',
       { headers: { 'Content-Type': 'text/plain', ...corsHeaders } },
     );
   },
 };
 
+// ICE candidate type (mirrors browser RTCIceCandidateInit)
+interface IceCandidateInit {
+  candidate?: string;
+  sdpMid?: string | null;
+  sdpMLineIndex?: number | null;
+  usernameFragment?: string | null;
+}
+
+// Message types
+type SignalingMessage =
+  | { type: 'joined'; role: 'host' | 'guest' }
+  | { type: 'room-ready'; iceServers: IceServer[] }
+  | { type: 'leave'; role: 'host' | 'guest' }
+  | { type: 'offer'; sdp: string }
+  | { type: 'answer'; sdp: string }
+  | { type: 'ice-candidate'; candidate: IceCandidateInit }
+  | { type: 'webrtc-ready' }
+  | { type: 'webrtc-failed' }
+  | { type: 'ping' }
+  | { type: 'pong' }
+  | { type: 'game'; payload: unknown };
+
 /**
- * GameRoom Durable Object
+ * GameRoom Durable Object with Hibernation API
  *
- * Manages a single game room with two player slots (host/guest).
+ * Uses WebSocket Hibernation to reduce costs when connections are idle.
+ * Supports both WebRTC signaling and WebSocket relay.
  */
 export class GameRoom {
   private state: DurableObjectState;
-  private host: WebSocket | null = null;
-  private guest: WebSocket | null = null;
-  private createdAt: number;
-  private lastActivity: number;
+  private sessions: Map<WebSocket, { role: 'host' | 'guest'; webrtcReady: boolean }> = new Map();
+  private createdAt: number = 0;
+  private lastActivity: number = 0;
+  private webrtcEstablished = false;
 
   constructor(state: DurableObjectState, _env: Env) {
     this.state = state;
-    this.createdAt = Date.now();
-    this.lastActivity = Date.now();
+
+    // Restore state from storage if hibernated
+    this.state.blockConcurrencyWhile(async () => {
+      const stored = await this.state.storage.get<{
+        createdAt: number;
+        lastActivity: number;
+        webrtcEstablished: boolean;
+      }>('roomState');
+      if (stored) {
+        this.createdAt = stored.createdAt;
+        this.lastActivity = stored.lastActivity;
+        this.webrtcEstablished = stored.webrtcEstablished;
+      } else {
+        this.createdAt = Date.now();
+        this.lastActivity = Date.now();
+      }
+
+      // Restore WebSocket sessions from hibernation
+      for (const ws of this.state.getWebSockets()) {
+        const tags = this.state.getTags(ws);
+        const role = tags.find((t) => t === 'host' || t === 'guest') as 'host' | 'guest' | undefined;
+        if (role) {
+          this.sessions.set(ws, { role, webrtcReady: false });
+        }
+      }
+    });
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -102,10 +186,14 @@ export class GameRoom {
 
     // Room info endpoint
     if (url.pathname === '/info') {
+      const hostWs = this.getWebSocketByRole('host');
+      const guestWs = this.getWebSocketByRole('guest');
+
       return new Response(
         JSON.stringify({
-          hasHost: !!this.host,
-          hasGuest: !!this.guest,
+          hasHost: !!hostWs,
+          hasGuest: !!guestWs,
+          webrtcEstablished: this.webrtcEstablished,
           createdAt: this.createdAt,
           lastActivity: this.lastActivity,
         }),
@@ -130,36 +218,37 @@ export class GameRoom {
     }
 
     // Check if slot is available
-    if (role === 'host' && this.host) {
-      return new Response('Host slot already taken', { status: 409 });
-    }
-    if (role === 'guest' && this.guest) {
-      return new Response('Guest slot already taken', { status: 409 });
+    const existingWs = this.getWebSocketByRole(role);
+    if (existingWs) {
+      return new Response(`${role} slot already taken`, { status: 409 });
     }
 
     // Create WebSocket pair
     const { 0: client, 1: server } = new WebSocketPair();
 
-    // Accept the WebSocket
+    // Accept with Hibernation API - use tags to store role
     this.state.acceptWebSocket(server, [role]);
-
-    // Store connection
-    if (role === 'host') {
-      this.host = server;
-    } else {
-      this.guest = server;
-    }
+    this.sessions.set(server, { role, webrtcReady: false });
 
     this.lastActivity = Date.now();
+    await this.saveState();
 
     // Send join confirmation
     server.send(JSON.stringify({ type: 'joined', role }));
 
-    // Check if room is ready
-    if (this.host && this.guest) {
-      const readyMessage = JSON.stringify({ type: 'room-ready' });
-      this.host.send(readyMessage);
-      this.guest.send(readyMessage);
+    // Check if room is ready (both peers connected)
+    const hostWs = this.getWebSocketByRole('host');
+    const guestWs = this.getWebSocketByRole('guest');
+
+    if (hostWs && guestWs) {
+      // Room is ready - send ready message with ICE servers
+      const readyMessage: SignalingMessage = {
+        type: 'room-ready',
+        iceServers: TURN_SERVERS,
+      };
+      const readyJson = JSON.stringify(readyMessage);
+      hostWs.send(readyJson);
+      guestWs.send(readyJson);
     }
 
     return new Response(null, {
@@ -168,56 +257,120 @@ export class GameRoom {
     });
   }
 
+  // Hibernation API handler - called when WebSocket receives a message
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
     if (typeof message !== 'string') return;
 
     this.lastActivity = Date.now();
 
     try {
-      const data = JSON.parse(message);
-      const role = this.getRole(ws);
-      const otherPeer = role === 'host' ? this.guest : this.host;
+      const data = JSON.parse(message) as SignalingMessage;
+      const session = this.sessions.get(ws);
+      if (!session) return;
 
-      // Handle ping locally
-      if (data.type === 'ping') {
-        ws.send(JSON.stringify({ type: 'pong' }));
-        return;
-      }
+      const role = session.role;
+      const otherWs = this.getWebSocketByRole(role === 'host' ? 'guest' : 'host');
 
-      // Forward all other messages to other peer
-      if (otherPeer && otherPeer.readyState === WebSocket.OPEN) {
-        otherPeer.send(message);
+      switch (data.type) {
+        case 'ping':
+          ws.send(JSON.stringify({ type: 'pong' }));
+          break;
+
+        case 'offer':
+        case 'answer':
+        case 'ice-candidate':
+          // Forward WebRTC signaling to other peer
+          if (otherWs) {
+            otherWs.send(message);
+          }
+          break;
+
+        case 'webrtc-ready':
+          // Mark this peer as WebRTC ready
+          session.webrtcReady = true;
+
+          // Check if both peers are WebRTC ready
+          const hostSession = this.getSessionByRole('host');
+          const guestSession = this.getSessionByRole('guest');
+          if (hostSession?.webrtcReady && guestSession?.webrtcReady) {
+            this.webrtcEstablished = true;
+            await this.saveState();
+          }
+          break;
+
+        case 'webrtc-failed':
+          // WebRTC failed, will continue using WebSocket relay
+          console.log(`WebRTC failed for ${role}, using WebSocket relay`);
+          break;
+
+        case 'game':
+          // Game message - forward to other peer (WebSocket relay)
+          // Only relay if WebRTC is not established
+          if (!this.webrtcEstablished && otherWs) {
+            otherWs.send(message);
+          }
+          break;
+
+        default:
+          // Forward unknown messages to other peer
+          if (otherWs) {
+            otherWs.send(message);
+          }
       }
     } catch (error) {
       console.error('Error handling message:', error);
     }
   }
 
+  // Hibernation API handler - called when WebSocket closes
   async webSocketClose(ws: WebSocket, code: number, reason: string): Promise<void> {
-    const role = this.getRole(ws);
+    const session = this.sessions.get(ws);
+    if (!session) return;
 
-    if (role === 'host') {
-      this.host = null;
-    } else if (role === 'guest') {
-      this.guest = null;
-    }
+    const role = session.role;
+    this.sessions.delete(ws);
+
+    // Reset WebRTC state if a peer disconnects
+    this.webrtcEstablished = false;
 
     // Notify other peer
-    const otherPeer = role === 'host' ? this.guest : this.host;
-    if (otherPeer && otherPeer.readyState === WebSocket.OPEN) {
-      otherPeer.send(JSON.stringify({ type: 'leave', role }));
+    const otherWs = this.getWebSocketByRole(role === 'host' ? 'guest' : 'host');
+    if (otherWs) {
+      otherWs.send(JSON.stringify({ type: 'leave', role }));
     }
 
     this.lastActivity = Date.now();
+    await this.saveState();
   }
 
-  async webSocketError(ws: WebSocket, error: Error): Promise<void> {
+  // Hibernation API handler - called when WebSocket errors
+  async webSocketError(ws: WebSocket, error: unknown): Promise<void> {
     console.error('WebSocket error:', error);
   }
 
-  private getRole(ws: WebSocket): 'host' | 'guest' | null {
-    if (this.host === ws) return 'host';
-    if (this.guest === ws) return 'guest';
-    return null;
+  private getWebSocketByRole(role: 'host' | 'guest'): WebSocket | undefined {
+    for (const [ws, session] of this.sessions) {
+      if (session.role === role) {
+        return ws;
+      }
+    }
+    return undefined;
+  }
+
+  private getSessionByRole(role: 'host' | 'guest') {
+    for (const [, session] of this.sessions) {
+      if (session.role === role) {
+        return session;
+      }
+    }
+    return undefined;
+  }
+
+  private async saveState(): Promise<void> {
+    await this.state.storage.put('roomState', {
+      createdAt: this.createdAt,
+      lastActivity: this.lastActivity,
+      webrtcEstablished: this.webrtcEstablished,
+    });
   }
 }
