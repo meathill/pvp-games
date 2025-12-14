@@ -30,6 +30,6 @@
     }
   ],
   "vars": {
-    "NEXT_PUBLIC_SIGNALING_URL": "https://pvp-signaling.roudan.io"
+    "NEXT_PUBLIC_SIGNALING_URL": "wss://pvp-signaling.roudan.io/ws"
   }
 }
