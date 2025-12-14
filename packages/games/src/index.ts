@@ -18,6 +18,14 @@ const duelSnakeSummary: GameSummary = {
   shared: createSharedContext({ project: 'pvp-games' }),
 };
 
+const duelSnakeOnlineSummary: GameSummary = {
+  id: 'duel-snake-online',
+  title: 'Duel Snake (Online PVP)',
+  description: '在线双人贪吃蛇对决：创建房间邀请好友，或加入好友的房间进行对战。',
+  tags: ['online', 'pvp', 'snake'],
+  shared: createSharedContext({ project: 'pvp-games' }),
+};
+
 const skyPongSummary: GameSummary = {
   id: 'sky-pong',
   title: 'Sky Pong (Online soon)',
@@ -34,7 +42,7 @@ const gridRushSummary: GameSummary = {
   shared: createSharedContext({ project: 'pvp-games' }),
 };
 
-const placeholderGames: GameSummary[] = [duelSnakeSummary, skyPongSummary, gridRushSummary];
+const placeholderGames: GameSummary[] = [duelSnakeSummary, duelSnakeOnlineSummary, skyPongSummary, gridRushSummary];
 
 export function listAvailableGames(): string[] {
   return placeholderGames.map((game) => game.id);

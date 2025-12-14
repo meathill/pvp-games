@@ -20,18 +20,16 @@ pnpm install
 在一个终端窗口运行：
 
 ```bash
-pnpm -C packages/server dev
+pnpm dev:signaling
 ```
+
+这会使用 Wrangler 在本地启动一个模拟 Cloudflare Workers 环境的服务器。
 
 你会看到类似输出：
 
 ```
-🎮 PVP Games Signaling Server running on port 8787
-
-   Local:   http://localhost:8787
-   Network: http://<your-lan-ip>:8787
-
-   WebSocket: ws://localhost:8787/ws?room=ROOMID&role=host|guest
+⎔ Starting local server...
+[wrangler:inf] Ready on http://localhost:8787
 ```
 
 ### 3. 启动前端开发服务器
@@ -39,7 +37,7 @@ pnpm -C packages/server dev
 在另一个终端窗口运行：
 
 ```bash
-pnpm -C packages/web dev
+pnpm dev
 ```
 
 前端会在 `http://localhost:3000` 启动。
@@ -126,4 +124,4 @@ pnpm -C packages/web dev
 2. 更新前端的服务器地址
 3. 进行广域网测试
 
-详见 `docs/architecture.md` 中的部署说明。
+详见 [部署指南](./deployment.md)。

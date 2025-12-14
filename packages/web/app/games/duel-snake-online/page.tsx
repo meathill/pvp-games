@@ -22,8 +22,14 @@ function LoadingState() {
 type PageState = 'menu' | 'creating' | 'joining' | 'playing';
 
 // Default to localhost for local development
+// Production signaling server URL - update after deployment
+const PRODUCTION_SERVER_URL = process.env.NEXT_PUBLIC_SIGNALING_URL || '';
+
+// Use production URL if available, otherwise fall back to local development
 const DEFAULT_SERVER_URL =
-  typeof window !== 'undefined' ? `ws://${window.location.hostname}:8787/ws` : 'ws://localhost:8787/ws';
+  typeof window !== 'undefined'
+    ? PRODUCTION_SERVER_URL || `ws://${window.location.hostname}:8787/ws`
+    : 'ws://localhost:8787/ws';
 
 export default function DuelSnakeOnlinePage() {
   const [pageState, setPageState] = useState<PageState>('menu');
@@ -173,13 +179,13 @@ export default function DuelSnakeOnlinePage() {
           <li>
             在终端运行信令服务器：
             <code className="ml-2 rounded bg-slate-200 px-2 py-1 font-mono text-xs dark:bg-slate-700">
-              pnpm -C packages/server dev
+              pnpm dev:signaling
             </code>
           </li>
           <li>
             在另一个终端运行前端：
             <code className="ml-2 rounded bg-slate-200 px-2 py-1 font-mono text-xs dark:bg-slate-700">
-              pnpm -C packages/web dev
+              pnpm dev
             </code>
           </li>
           <li>主机玩家点击"创建房间"，记下房间码</li>
