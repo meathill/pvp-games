@@ -26,23 +26,8 @@ const duelSnakeOnlineSummary: GameSummary = {
   shared: createSharedContext({ project: 'pvp-games' }),
 };
 
-const skyPongSummary: GameSummary = {
-  id: 'sky-pong',
-  title: 'Sky Pong (Online soon)',
-  description: '云端对战的空战乒乓，计划支持匹配与观战。',
-  tags: ['online', 'ranked'],
-  shared: createSharedContext({ project: 'pvp-games' }),
-};
-
-const gridRushSummary: GameSummary = {
-  id: 'grid-rush',
-  title: 'Grid Rush (Co-op)',
-  description: '合作解锁格子的街机闯关，适合直播互动与局域网。',
-  tags: ['co-op', 'arcade'],
-  shared: createSharedContext({ project: 'pvp-games' }),
-};
-
-const placeholderGames: GameSummary[] = [duelSnakeSummary, duelSnakeOnlineSummary, skyPongSummary, gridRushSummary];
+// 只保留已实现的游戏，在线版本排在前面
+const placeholderGames: GameSummary[] = [duelSnakeOnlineSummary, duelSnakeSummary];
 
 export function listAvailableGames(): string[] {
   return placeholderGames.map((game) => game.id);

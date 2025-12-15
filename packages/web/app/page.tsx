@@ -7,172 +7,209 @@ import { listGameCatalog } from './data/games';
 const games = listGameCatalog();
 
 export default function HomePage() {
-  const duelSnake = pickFeaturedGame(games);
+  const featuredGame = pickFeaturedGame(games);
+  const localGame = games.find((g) => g.id === 'duel-snake');
 
   return (
-    <main className="mx-auto max-w-6xl space-y-10 px-6 py-10">
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-sky-800 text-white shadow-2xl ring-1 ring-slate-800/70">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.25),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(125,211,252,0.18),transparent_32%),radial-gradient(circle_at_80%_80%,rgba(14,165,233,0.2),transparent_36%)]" />
-        <div className="relative grid gap-8 p-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+    <main className="mx-auto max-w-5xl space-y-8 px-6 py-10">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-sky-900 text-white shadow-2xl">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(56,189,248,0.3),transparent_40%),radial-gradient(circle_at_70%_80%,rgba(14,165,233,0.25),transparent_45%)]" />
+        <div className="relative p-8 lg:p-10">
           <div className="space-y-6">
-            <p className="text-sm font-semibold uppercase tracking-[0.12em] text-sky-100">PVP GAME HUB</p>
-            <h1 className="text-4xl font-bold leading-tight">PVP 游戏大厅</h1>
-            <p className="max-w-2xl text-lg leading-relaxed text-slate-100/90">
-              精选轻量级 PVP 小游戏，覆盖本地、局域网与在线匹配。Next.js 负责渲染与 SEO， 具体玩法通过{' '}
-              <code className="rounded bg-white/10 px-1 py-[2px] font-mono text-sm text-sky-100 ring-1 ring-white/20">
-                @pvp-games/games
-              </code>{' '}
-              提供的组件加载，前端只做大厅编排。
-            </p>
-            <div className="flex flex-wrap gap-3 text-sm">
-              <span className="rounded-full bg-white/10 px-3 py-1 font-medium ring-1 ring-white/30">
-                今日推荐 · {duelSnake?.title ?? '精选游戏'}
-              </span>
-              <span className="rounded-full bg-white/5 px-3 py-1 font-medium ring-1 ring-white/20">
-                共 {games.length} 款上架
-              </span>
-              <span className="rounded-full bg-sky-500/20 px-3 py-1 font-medium text-sky-50 ring-1 ring-sky-200/50">
-                每日更新
-              </span>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              {hallHighlights.map((item) => (
-                <div
-                  key={item.title}
-                  className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner backdrop-blur">
-                  <p className="text-base font-semibold text-white">{item.title}</p>
-                  <p className="mt-1 text-sm text-white/80">{item.description}</p>
-                </div>
-              ))}
+            <div className="space-y-2">
+              <p className="text-sm font-semibold uppercase tracking-[0.15em] text-sky-300">PVP Game Hub</p>
+              <h1 className="text-4xl font-bold leading-tight lg:text-5xl">PVP 游戏大厅</h1>
+              <p className="max-w-xl text-lg text-slate-200/90">轻量级在线 PVP 小游戏，浏览器即开即玩。</p>
             </div>
 
             <div className="flex flex-wrap gap-3">
-              {duelSnake && (
-                <Link
-                  href={`/games/${duelSnake.id}`}
-                  className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg ring-1 ring-white/60 transition hover:-translate-y-[1px] hover:shadow-xl">
-                  立即开局
-                </Link>
-              )}
-              <Link
-                href="#game-list"
-                className="rounded-full bg-transparent px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/40 transition hover:-translate-y-[1px] hover:bg-white/10">
-                查看全部游戏
-              </Link>
-            </div>
-          </div>
-
-          <div className="rounded-2xl bg-white/5 p-4 shadow-lg ring-1 ring-white/20 backdrop-blur">
-            <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
-              <div className="space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-wide text-sky-100">今日推荐</p>
-                <h2 className="text-xl font-semibold text-white">{duelSnake?.title ?? '今日推荐游戏'}</h2>
-                <p className="text-sm text-white/80">{duelSnake?.description ?? '本地双人对战，开局即战。'}</p>
-              </div>
-              <span className="rounded-full bg-slate-900/60 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ring-1 ring-white/15">
-                独立游戏页
+              <span className="inline-flex items-center gap-2 rounded-full bg-green-500/20 px-4 py-1.5 text-sm font-medium text-green-200 ring-1 ring-green-400/30">
+                <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
+                在线可用
               </span>
-            </div>
-            <div className="mt-4 rounded-xl bg-slate-950/40 p-4 ring-1 ring-white/10">
-              <p className="text-sm text-white/80">进入专属游戏页即可启动对战体验，首页保持轻量展示。</p>
-              {duelSnake && (
-                <div className="mt-3 flex flex-wrap items-center gap-3">
-                  <Link
-                    href={`/games/${duelSnake.id}`}
-                    className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg ring-1 ring-white/60 transition hover:-translate-y-[1px] hover:shadow-xl">
-                    前往 {duelSnake.title}
-                  </Link>
-                  <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/90 ring-1 ring-white/20">
-                    {duelSnake.tags?.join(' · ') ?? 'PVP'}
-                  </span>
-                </div>
-              )}
+              <span className="rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium ring-1 ring-white/20">
+                WebRTC P2P
+              </span>
+              <span className="rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium ring-1 ring-white/20">
+                低延迟直连
+              </span>
             </div>
           </div>
         </div>
       </section>
 
-      <section
-        id="game-list"
-        className="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-sky-600">上架游戏</p>
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">所有游戏与模式</h2>
-              <p className="text-sm text-slate-600 dark:text-slate-300">统一入口，支持搜索引擎收录的大厅列表。</p>
+      {/* Featured Game - 大卡片突出展示 */}
+      {featuredGame && (
+        <section className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 via-sky-600 to-blue-700 p-px shadow-xl transition-all hover:shadow-2xl">
+          <div className="relative rounded-[15px] bg-gradient-to-br from-sky-500/90 via-sky-600/95 to-blue-700 p-6 lg:p-8">
+            <div className="absolute right-4 top-4 rounded-full bg-white/20 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white backdrop-blur">
+              推荐
             </div>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
-              持续更新
-            </span>
-          </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            {games.map((game) => (
-              <article
-                key={game.id}
-                className="flex h-full flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-[1px] hover:border-sky-200 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900">
+            <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">{game.title}</h3>
-                      {game.description && (
-                        <p className="text-sm text-slate-600 dark:text-slate-300">{game.description}</p>
-                      )}
-                    </div>
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-700 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
-                      PVP
-                    </span>
-                  </div>
+                  <h2 className="text-2xl font-bold text-white lg:text-3xl">{featuredGame.title}</h2>
+                  <p className="max-w-lg text-base text-white/90">{featuredGame.description}</p>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {(game.tags ?? []).map((tag) => (
+
+                <div className="flex flex-wrap gap-2">
+                  {(featuredGame.tags ?? []).map((tag) => (
                     <span
                       key={tag}
-                      className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
+                      className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
                       {tag}
                     </span>
                   ))}
                 </div>
-                <div className="mt-4 flex items-center justify-between">
+
+                <div className="flex flex-wrap items-center gap-4 pt-2">
                   <Link
-                    href={`/games/${game.id}`}
-                    className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-[1px] hover:bg-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900">
+                    href={`/games/${featuredGame.id}`}
+                    className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-sky-700 shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl">
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    立即开始对战
+                  </Link>
+                  <span className="text-sm text-white/70">邀请好友，在线对战</span>
+                </div>
+              </div>
+
+              <div className="hidden items-center lg:flex">
+                <div className="grid h-32 w-32 place-items-center rounded-2xl bg-white/10 backdrop-blur">
+                  <svg
+                    className="h-16 w-16 text-white/80"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 内容区域 */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        {/* 更多游戏 */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">更多玩法</h2>
+            <span className="text-sm text-slate-500 dark:text-slate-400">共 {games.length} 款游戏</span>
+          </div>
+
+          <div className="space-y-3">
+            {/* 本地版本 - 次要展示 */}
+            {localGame && (
+              <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:shadow-md dark:border-slate-700 dark:bg-slate-800/50">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-slate-900 dark:text-white">{localGame.title}</h3>
+                      <span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                        本地
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">{localGame.description}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {(localGame.tags ?? []).map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <Link
+                    href={`/games/${localGame.id}`}
+                    className="shrink-0 rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600">
                     进入游戏
                   </Link>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">独立页面加载对战体验</span>
                 </div>
               </article>
-            ))}
-          </div>
-        </div>
+            )}
 
-        <aside className="space-y-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
-          <div className="space-y-1">
-            <p className="text-sm font-semibold text-sky-600">活动 & 公告</p>
-            <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-50">大厅播报</h3>
-            <p className="text-sm text-slate-600 dark:text-slate-300">每日刷新一条活动或联机实验，便于 SEO 抓取。</p>
+            {/* 敬请期待 */}
+            <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-6 text-center dark:border-slate-700 dark:bg-slate-800/30">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">更多游戏开发中...</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">敬请期待 Sky Pong、Grid Rush 等新游戏</p>
+              </div>
+            </div>
           </div>
+        </section>
+
+        {/* 侧边栏 */}
+        <aside className="space-y-4">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">公告</h3>
           <div className="space-y-3">
             {sidebarNotices.map((notice) => (
               <div
                 key={notice.title}
-                className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900/60">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-base font-semibold text-slate-900 dark:text-slate-50">{notice.title}</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-300">{notice.description}</p>
+                className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/50">
+                <div className="space-y-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-medium text-slate-900 dark:text-white">{notice.title}</p>
+                    <span className="shrink-0 rounded bg-sky-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-700 dark:bg-sky-900/50 dark:text-sky-300">
+                      {notice.tone}
+                    </span>
                   </div>
-                  <span className="rounded-full bg-sky-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-sky-700 ring-1 ring-sky-200 dark:bg-sky-900/60 dark:text-sky-100 dark:ring-sky-800">
-                    {notice.tone}
-                  </span>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{notice.description}</p>
                 </div>
               </div>
             ))}
           </div>
+
+          {/* 功能亮点 */}
+          <div className="rounded-xl bg-gradient-to-br from-slate-100 to-slate-50 p-4 dark:from-slate-800 dark:to-slate-800/50">
+            <h4 className="mb-3 text-sm font-bold text-slate-700 dark:text-slate-300">平台特色</h4>
+            <div className="space-y-2">
+              {hallHighlights.slice(0, 2).map((item) => (
+                <div
+                  key={item.title}
+                  className="flex items-start gap-2">
+                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-sky-500" />
+                  <div>
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{item.title}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{item.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </aside>
-      </section>
+      </div>
     </main>
   );
 }
