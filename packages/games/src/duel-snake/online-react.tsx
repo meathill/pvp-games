@@ -43,12 +43,15 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
   const [state, setState] = useState<DuelSnakeState | null>(null);
   const [latency, setLatency] = useState<number>(0);
   const [transport, setTransport] = useState<TransportType>('websocket');
+  const [startConfirmed, setStartConfirmed] = useState(false);
+  const [opponentConfirmed, setOpponentConfirmed] = useState(false);
 
   const transportRef = useRef<HybridTransport | null>(null);
   const hostRef = useRef<DuelSnakeOnlineHost | null>(null);
   const clientRef = useRef<DuelSnakeOnlineClient | null>(null);
   const tickIntervalRef = useRef<number | null>(null);
   const isConnectingRef = useRef(false);
+  const gameInitializedRef = useRef(false);
 
   // Connect to room
   useEffect(() => {
@@ -74,12 +77,15 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
     };
   }, [serverUrl, roomId, role]);
 
-  // Initialize game when ready
+  // Initialize game when ready (but don't mark ready until user confirms)
   useEffect(() => {
     if (status !== 'ready') return;
+    if (gameInitializedRef.current) return;
 
     const endpoint = transportRef.current;
     if (!endpoint) return;
+
+    gameInitializedRef.current = true;
 
     if (role === 'host') {
       const host = new DuelSnakeOnlineHost({
@@ -88,6 +94,10 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
         tickIntervalMs: TICK_INTERVAL_MS,
         onStateChange: (newState) => {
           setState(newState);
+          // 检查对方是否已确认
+          if (newState.players.p2.ready) {
+            setOpponentConfirmed(true);
+          }
           if (newState.status === 'running') {
             setStatus('playing');
           }
@@ -96,12 +106,16 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
       });
       hostRef.current = host;
       setState(host.getState());
-      host.markReady();
+      // 不再自动调用 markReady，等待用户确认
     } else {
       const client = new DuelSnakeOnlineClient({
         channel: endpoint,
         onStateChange: (newState) => {
           setState(newState);
+          // 检查对方是否已确认
+          if (newState.players.p1.ready) {
+            setOpponentConfirmed(true);
+          }
           if (newState.status === 'running') {
             setStatus('playing');
           }
@@ -113,9 +127,19 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
         onError: (err) => setError(err.message),
       });
       clientRef.current = client;
-      client.markReady();
+      // 不再自动调用 markReady，等待用户确认
     }
   }, [status, role, roomId]);
+
+  // 用户点击开始游戏按钮
+  const handleStartConfirm = useCallback(() => {
+    setStartConfirmed(true);
+    if (role === 'host' && hostRef.current) {
+      hostRef.current.markReady();
+    } else if (role === 'guest' && clientRef.current) {
+      clientRef.current.markReady();
+    }
+  }, [role]);
 
   // Tick loop for host
   useEffect(() => {
@@ -198,6 +222,8 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
 
   // Waiting screen
   if (status !== 'playing' || !state) {
+    const myPlayer = role === 'host' ? 'p1' : 'p2';
+
     return (
       <div className="flex min-h-[400px] flex-col items-center justify-center gap-4 rounded-2xl bg-white/80 p-8 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:ring-slate-700">
         <div className="text-lg font-semibold text-slate-900 dark:text-slate-50 px-4">{statusText}</div>
@@ -214,6 +240,65 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
         {status === 'signaling' && (
           <div className="text-sm text-slate-500 dark:text-slate-400">
             正在尝试建立点对点连接，如失败将使用服务器中继...
+          </div>
+        )}
+
+        {/* 开始确认面板 */}
+        {status === 'ready' && (
+          <div className="flex flex-col items-center gap-6 max-w-md">
+            {/* 游戏规则说明 */}
+            <div className="text-center space-y-2">
+              <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">贪吃蛇对战</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                使用方向键或 WASD 控制你的蛇移动。吃到水果可以得分并让蛇变长。
+                先到达 {state?.targetScore ?? 10} 分的玩家获胜！
+              </p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                撞到墙壁或对方的身体会导致死亡，死亡后会在随机位置重生，但分数会清零。
+              </p>
+            </div>
+
+            {/* 玩家颜色指示 */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 rounded-lg px-3 py-2"
+                style={{
+                  backgroundColor: PLAYER_COLORS[myPlayer].light,
+                  color: PLAYER_COLORS[myPlayer].text,
+                  boxShadow: `0 0 0 1px ${PLAYER_COLORS[myPlayer].stroke}`,
+                }}>
+                <span
+                  className="h-4 w-4 rounded-sm"
+                  style={{ backgroundColor: PLAYER_COLORS[myPlayer].primary }}
+                />
+                <span className="font-semibold">你的颜色</span>
+              </div>
+            </div>
+
+            {/* 确认状态 */}
+            <div className="flex items-center gap-4 text-sm">
+              <div className={`flex items-center gap-2 ${startConfirmed ? 'text-green-600 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                <span className={`inline-block h-2.5 w-2.5 rounded-full ${startConfirmed ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                <span>你{startConfirmed ? '已准备' : '未准备'}</span>
+              </div>
+              <div className={`flex items-center gap-2 ${opponentConfirmed ? 'text-green-600 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                <span className={`inline-block h-2.5 w-2.5 rounded-full ${opponentConfirmed ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                <span>对手{opponentConfirmed ? '已准备' : '未准备'}</span>
+              </div>
+            </div>
+
+            {/* 开始按钮 */}
+            {!startConfirmed ? (
+              <button
+                type="button"
+                onClick={handleStartConfirm}
+                className="rounded-xl bg-emerald-600 px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-400 dark:bg-emerald-500 dark:hover:bg-emerald-400">
+                开始游戏
+              </button>
+            ) : (
+              <div className="text-sm text-slate-500 dark:text-slate-400">
+                {opponentConfirmed ? '游戏即将开始...' : '等待对手确认...'}
+              </div>
+            )}
           </div>
         )}
 

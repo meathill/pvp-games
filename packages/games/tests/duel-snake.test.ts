@@ -51,8 +51,8 @@ describe('DuelSnakeGame (local 2P)', () => {
     expect(state.players.p1.score).toBe(2);
   });
 
-  it('respawns with 3 cells in a random corner after wall collision', () => {
-    const game = new DuelSnakeGame({ width: 8, height: 6, random: sequenceRandom([0]) });
+  it('respawns with 3 cells in a random safe location after wall collision', () => {
+    const game = new DuelSnakeGame({ width: 10, height: 10, random: sequenceRandom([0]) });
     game.ready('p1');
     game.ready('p2');
     game.start();
@@ -64,39 +64,41 @@ describe('DuelSnakeGame (local 2P)', () => {
 
     const p1 = game.getState().players.p1;
     expect(p1.alive).toBe(true);
-    expect(p1.segments).toEqual([
-      { x: 2, y: 1 },
-      { x: 1, y: 1 },
-      { x: 0, y: 1 },
-    ]);
+    expect(p1.segments.length).toBe(3);
+    // 验证重生位置在安全区域内（离墙至少3格）
+    const head = p1.segments[0];
+    expect(head.x).toBeGreaterThanOrEqual(3);
+    expect(head.x).toBeLessThan(7);
+    expect(head.y).toBeGreaterThanOrEqual(3);
+    expect(head.y).toBeLessThan(7);
   });
 
   it('respawns after hitting right wall', () => {
-    const game = new DuelSnakeGame({ width: 8, height: 6, random: sequenceRandom([0]) });
+    const game = new DuelSnakeGame({ width: 10, height: 10, random: sequenceRandom([0]) });
     game.ready('p1');
     game.ready('p2');
     game.start();
 
-    // p1 starts at x=2, move right until hitting wall at x=8
-    for (let i = 0; i < 10; i++) {
+    // p1 starts at x=2, move right until hitting wall at x=10
+    for (let i = 0; i < 12; i++) {
       game.tick();
     }
 
-    // After respawn, p1 should be alive with 3 segments
+    // After respawn, p1 should be alive with 3 segments in safe zone
     const p1 = game.getState().players.p1;
     expect(p1.alive).toBe(true);
     expect(p1.segments.length).toBe(3);
   });
 
   it('respawns after hitting bottom wall', () => {
-    const game = new DuelSnakeGame({ width: 8, height: 6, random: sequenceRandom([0]) });
+    const game = new DuelSnakeGame({ width: 10, height: 10, random: sequenceRandom([0]) });
     game.ready('p1');
     game.ready('p2');
     game.start();
 
     // Force p1 to move down until hitting bottom wall
     game.queueInput('p1', 'down');
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 12; i++) {
       game.tick();
     }
 
@@ -106,7 +108,7 @@ describe('DuelSnakeGame (local 2P)', () => {
   });
 
   it('respawns after hitting left wall', () => {
-    const game = new DuelSnakeGame({ width: 8, height: 6, random: sequenceRandom([0]) });
+    const game = new DuelSnakeGame({ width: 10, height: 10, random: sequenceRandom([0]) });
     game.ready('p1');
     game.ready('p2');
     game.start();
@@ -197,7 +199,7 @@ describe('DuelSnakeGame (local 2P)', () => {
   });
 
   it('ignores input during respawn cooldown', () => {
-    const game = new DuelSnakeGame({ width: 8, height: 6, random: sequenceRandom([0]) });
+    const game = new DuelSnakeGame({ width: 10, height: 10, random: sequenceRandom([0]) });
     game.ready('p1');
     game.ready('p2');
     game.start();
@@ -205,20 +207,20 @@ describe('DuelSnakeGame (local 2P)', () => {
     // Force p1 to crash into wall
     game.queueInput('p1', 'up');
     game.tick();
-    game.tick(); // respawn with 4 ticks cooldown
+    game.tick(); // respawn with 3 ticks cooldown
 
     // Should have cooldown
-    expect(game.getState().players.p1.respawnTicksRemaining).toBe(4);
+    expect(game.getState().players.p1.respawnTicksRemaining).toBe(3);
 
     // Try to queue input during cooldown - should be ignored
     const segmentsBefore = game.getState().players.p1.segments;
     game.queueInput('p1', 'right');
-    game.tick(); // cooldown: 4 -> 3
+    game.tick(); // cooldown: 3 -> 2
 
     // Snake should not have moved
     const segmentsAfter = game.getState().players.p1.segments;
     expect(segmentsAfter).toEqual(segmentsBefore);
-    expect(game.getState().players.p1.respawnTicksRemaining).toBe(3);
+    expect(game.getState().players.p1.respawnTicksRemaining).toBe(2);
   });
 
   it('decreases respawn cooldown each tick', () => {
@@ -230,17 +232,17 @@ describe('DuelSnakeGame (local 2P)', () => {
     // Force p1 to crash by going up into wall
     game.queueInput('p1', 'up');
     game.tick(); // y: 1 -> 0
-    game.tick(); // y: 0 -> -1, respawn with cooldown = 4
+    game.tick(); // y: 0 -> -1, respawn with cooldown = 3
 
-    // 验证冷却期初始化为 4
-    expect(game.getState().players.p1.respawnTicksRemaining).toBe(4);
+    // 验证冷却期初始化为 3
+    expect(game.getState().players.p1.respawnTicksRemaining).toBe(3);
 
     // 记录重生位置
     const posAtRespawn = { ...game.getState().players.p1.segments[0] };
 
-    // 第一次 tick: 4 -> 3，位置不变
+    // 第一次 tick: 3 -> 2，位置不变
     game.tick();
-    expect(game.getState().players.p1.respawnTicksRemaining).toBe(3);
+    expect(game.getState().players.p1.respawnTicksRemaining).toBe(2);
     expect(game.getState().players.p1.segments[0]).toEqual(posAtRespawn);
   });
 });
