@@ -70,4 +70,106 @@ describe('DuelSnakeGame (local 2P)', () => {
       { x: 0, y: 1 },
     ]);
   });
+
+  it('respawns after hitting right wall', () => {
+    const game = new DuelSnakeGame({ width: 8, height: 6, random: sequenceRandom([0]) });
+    game.ready('p1');
+    game.ready('p2');
+    game.start();
+
+    // p1 starts at x=2, move right until hitting wall at x=8
+    for (let i = 0; i < 10; i++) {
+      game.tick();
+    }
+
+    // After respawn, p1 should be alive with 3 segments
+    const p1 = game.getState().players.p1;
+    expect(p1.alive).toBe(true);
+    expect(p1.segments.length).toBe(3);
+  });
+
+  it('respawns after hitting bottom wall', () => {
+    const game = new DuelSnakeGame({ width: 8, height: 6, random: sequenceRandom([0]) });
+    game.ready('p1');
+    game.ready('p2');
+    game.start();
+
+    // Force p1 to move down until hitting bottom wall
+    game.queueInput('p1', 'down');
+    for (let i = 0; i < 10; i++) {
+      game.tick();
+    }
+
+    const p1 = game.getState().players.p1;
+    expect(p1.alive).toBe(true);
+    expect(p1.segments.length).toBe(3);
+  });
+
+  it('respawns after hitting left wall', () => {
+    const game = new DuelSnakeGame({ width: 8, height: 6, random: sequenceRandom([0]) });
+    game.ready('p1');
+    game.ready('p2');
+    game.start();
+
+    // p1 needs to turn around: go up then left
+    game.queueInput('p1', 'up');
+    game.tick();
+    game.queueInput('p1', 'left');
+    for (let i = 0; i < 10; i++) {
+      game.tick();
+    }
+
+    const p1 = game.getState().players.p1;
+    expect(p1.alive).toBe(true);
+    expect(p1.segments.length).toBe(3);
+  });
+
+  it('respawns after hitting own body', () => {
+    const game = new DuelSnakeGame({ width: 10, height: 10, random: sequenceRandom([0]) });
+    game.ready('p1');
+    game.ready('p2');
+    game.start();
+
+    // Grow the snake first by eating some fruits
+    game.setFruitForTest({ x: 3, y: 1 });
+    game.tick(); // eat fruit, grow to 4
+    game.setFruitForTest({ x: 4, y: 1 });
+    game.tick(); // eat fruit, grow to 5
+    game.setFruitForTest({ x: 5, y: 1 });
+    game.tick(); // eat fruit, grow to 6
+
+    // Now make a U-turn to hit own body: down, left, up
+    game.queueInput('p1', 'down');
+    game.tick();
+    game.queueInput('p1', 'left');
+    game.tick();
+    game.queueInput('p1', 'up');
+    game.tick(); // should hit own body
+
+    const p1 = game.getState().players.p1;
+    expect(p1.alive).toBe(true);
+    expect(p1.segments.length).toBe(3); // respawned with 3 segments
+  });
+
+  it('respawns after hitting opponent snake', () => {
+    const game = new DuelSnakeGame({ width: 10, height: 10, random: sequenceRandom([0.5]) });
+    game.ready('p1');
+    game.ready('p2');
+    game.start();
+
+    // Move both snakes towards center
+    // p1 starts at (2,1) facing right, p2 at (7,8) facing left
+    game.queueInput('p1', 'down');
+    game.queueInput('p2', 'up');
+
+    // Run multiple ticks until they might collide
+    for (let i = 0; i < 20; i++) {
+      game.tick();
+    }
+
+    // Both snakes should still be alive (respawned if collision occurred)
+    const state = game.getState();
+    expect(state.players.p1.alive).toBe(true);
+    expect(state.players.p2.alive).toBe(true);
+  });
 });

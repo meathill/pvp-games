@@ -78,7 +78,7 @@ pvp-games/
 
 1. **Location Hints**：Durable Object 实例放置在房主最近的数据中心
 2. **Hibernation API**：WebSocket 空闲时休眠，降低成本
-3. **20 FPS 帧率**：优化的 50ms tick 间隔
+3. **约 8 FPS 帧率**：优化的 120ms tick 间隔
 4. **自动回退**：WebRTC 5 秒超时后自动切换到 WebSocket
 
 ## 模块职责
@@ -198,6 +198,7 @@ type RelayWireMessage =
 - [x] 在线对战前端集成
 - [x] 局域网测试
 - [x] 部署文档
+- [x] WebRTC P2P 连接
 
 ### 🚧 进行中
 
@@ -206,7 +207,6 @@ type RelayWireMessage =
 
 ### 📋 计划中
 
-- [ ] WebRTC P2P 连接
 - [ ] 房间密码功能
 - [ ] 随机匹配系统
 - [ ] 观战功能
