@@ -43,8 +43,8 @@ const OPPOSITE: Record<Direction, Direction> = {
   right: 'left',
 };
 
-const DEFAULT_WIDTH = 20;
-const DEFAULT_HEIGHT = 15;
+const DEFAULT_WIDTH = 40;
+const DEFAULT_HEIGHT = 30;
 const DEFAULT_TARGET_SCORE = 10;
 const DEFAULT_TICK_MS = 120;
 

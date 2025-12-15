@@ -19,14 +19,14 @@ describe('DuelSnakeExperience', () => {
 
     const grid = screen.getByTestId('board-grid');
     const cells = within(grid).getAllByRole('presentation', { hidden: true });
-    expect(cells).toHaveLength(20 * 15);
+    expect(cells).toHaveLength(40 * 30);
   });
 
   it('exposes fallbacks for player identification when styles are missing', () => {
     render(<DuelSnakeExperience initialSeed="tdd-seed" />);
 
     const p1Cell = screen.getByLabelText('cell-2-1');
-    const p2Cell = screen.getByLabelText('cell-17-13');
+    const p2Cell = screen.getByLabelText('cell-37-28');
 
     expect(p1Cell).toHaveAttribute('title', expect.stringContaining('P1'));
     expect(p2Cell).toHaveAttribute('title', expect.stringContaining('P2'));

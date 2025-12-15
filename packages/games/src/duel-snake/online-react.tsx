@@ -11,8 +11,8 @@ const CELL_SIZE = 18;
 const CELL_GAP = 2;
 
 // Network constants
-const TARGET_FPS = 20; // 20 frames per second = 50ms per tick
-const TICK_INTERVAL_MS = 1000 / TARGET_FPS;
+const TARGET_FPS = 8; // 约 8 fps = 120ms per tick，与离线模式一致
+const TICK_INTERVAL_MS = 120;
 const WEBRTC_TIMEOUT_MS = 5000; // Give WebRTC 5 seconds to connect
 const PING_INTERVAL_MS = 2000;
 
