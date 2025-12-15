@@ -172,4 +172,75 @@ describe('DuelSnakeGame (local 2P)', () => {
     expect(state.players.p1.alive).toBe(true);
     expect(state.players.p2.alive).toBe(true);
   });
+
+  it('resets score to 0 on death', () => {
+    const game = new DuelSnakeGame({ width: 10, height: 10, random: sequenceRandom([0]) });
+    game.ready('p1');
+    game.ready('p2');
+    game.start();
+
+    // Eat some fruits to gain score
+    game.setFruitForTest({ x: 3, y: 1 });
+    game.tick();
+    game.setFruitForTest({ x: 4, y: 1 });
+    game.tick();
+
+    expect(game.getState().players.p1.score).toBe(2);
+
+    // Now crash into wall
+    game.queueInput('p1', 'up');
+    game.tick();
+    game.tick(); // hit wall and respawn
+
+    // Score should be reset to 0
+    expect(game.getState().players.p1.score).toBe(0);
+  });
+
+  it('ignores input during respawn cooldown', () => {
+    const game = new DuelSnakeGame({ width: 8, height: 6, random: sequenceRandom([0]) });
+    game.ready('p1');
+    game.ready('p2');
+    game.start();
+
+    // Force p1 to crash into wall
+    game.queueInput('p1', 'up');
+    game.tick();
+    game.tick(); // respawn with 4 ticks cooldown
+
+    // Should have cooldown
+    expect(game.getState().players.p1.respawnTicksRemaining).toBe(4);
+
+    // Try to queue input during cooldown - should be ignored
+    const segmentsBefore = game.getState().players.p1.segments;
+    game.queueInput('p1', 'right');
+    game.tick(); // cooldown: 4 -> 3
+
+    // Snake should not have moved
+    const segmentsAfter = game.getState().players.p1.segments;
+    expect(segmentsAfter).toEqual(segmentsBefore);
+    expect(game.getState().players.p1.respawnTicksRemaining).toBe(3);
+  });
+
+  it('decreases respawn cooldown each tick', () => {
+    const game = new DuelSnakeGame({ width: 40, height: 40, random: sequenceRandom([0.5]) });
+    game.ready('p1');
+    game.ready('p2');
+    game.start();
+
+    // Force p1 to crash by going up into wall
+    game.queueInput('p1', 'up');
+    game.tick(); // y: 1 -> 0
+    game.tick(); // y: 0 -> -1, respawn with cooldown = 4
+
+    // 验证冷却期初始化为 4
+    expect(game.getState().players.p1.respawnTicksRemaining).toBe(4);
+
+    // 记录重生位置
+    const posAtRespawn = { ...game.getState().players.p1.segments[0] };
+
+    // 第一次 tick: 4 -> 3，位置不变
+    game.tick();
+    expect(game.getState().players.p1.respawnTicksRemaining).toBe(3);
+    expect(game.getState().players.p1.segments[0]).toEqual(posAtRespawn);
+  });
 });

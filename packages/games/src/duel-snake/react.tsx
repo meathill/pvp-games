@@ -293,6 +293,10 @@ export function DuelSnakeExperience({ initialSeed, initialTheme = 'light', tickI
               const isP2 = p2Cells.has(key);
               const isFruit = key === fruitKey;
 
+              // 检查是否处于重生冷却期（闪烁效果）
+              const p1Respawning = state.players.p1.respawnTicksRemaining > 0;
+              const p2Respawning = state.players.p2.respawnTicksRemaining > 0;
+
               const fillClass = (() => {
                 if (isFruit) return 'bg-orange-500 ring-1 ring-orange-400/70';
                 if (isP1) return 'bg-emerald-400 ring-1 ring-emerald-300/70';
@@ -305,12 +309,20 @@ export function DuelSnakeExperience({ initialSeed, initialTheme = 'light', tickI
                   return {
                     backgroundColor: PLAYER_COLORS.p1.primary,
                     boxShadow: `0 0 0 1px ${PLAYER_COLORS.p1.stroke}`,
+                    // 重生冷却期闪烁效果
+                    ...(p1Respawning && {
+                      animation: 'respawn-blink 166ms ease-in-out infinite',
+                    }),
                   };
                 }
                 if (isP2) {
                   return {
                     backgroundColor: PLAYER_COLORS.p2.primary,
                     boxShadow: `0 0 0 1px ${PLAYER_COLORS.p2.stroke}`,
+                    // 重生冷却期闪烁效果
+                    ...(p2Respawning && {
+                      animation: 'respawn-blink 166ms ease-in-out infinite',
+                    }),
                   };
                 }
                 return undefined;
@@ -318,8 +330,8 @@ export function DuelSnakeExperience({ initialSeed, initialTheme = 'light', tickI
 
               const cellLabel = (() => {
                 if (isFruit) return `果实 (${x},${y})`;
-                if (isP1) return `P1 蛇身 (${x},${y})`;
-                if (isP2) return `P2 蛇身 (${x},${y})`;
+                if (isP1) return `P1 蛇身 (${x},${y})${p1Respawning ? ' (重生中)' : ''}`;
+                if (isP2) return `P2 蛇身 (${x},${y})${p2Respawning ? ' (重生中)' : ''}`;
                 return `空白 (${x},${y})`;
               })();
 

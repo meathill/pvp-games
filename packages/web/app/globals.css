@@ -14,3 +14,14 @@ body {
   min-height: 100vh;
   background-color: #f8fafc;
 }
+
+/* 重生闪烁动画：约 500ms 内闪烁 3 次（166ms × 3） */
+@keyframes respawn-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}

@@ -24,6 +24,7 @@ interface PlayerState {
   score: number;
   alive: boolean;
   ready: boolean;
+  respawnTicksRemaining: number;
 }
 
 export interface DuelSnakeState {
@@ -139,6 +140,8 @@ export class DuelSnakeGame {
 
   queueInput(player: PlayerId, direction: Direction): void {
     const current = this.players[player];
+    // 冷却期内忽略输入
+    if (current.respawnTicksRemaining > 0) return;
     if (OPPOSITE[current.direction] === direction) return;
     current.pendingDirection = direction;
   }
@@ -161,6 +164,14 @@ export class DuelSnakeGame {
 
     (['p1', 'p2'] as PlayerId[]).forEach((id) => {
       const player = this.players[id];
+
+      // 处理重生冷却期
+      if (player.respawnTicksRemaining > 0) {
+        player.respawnTicksRemaining -= 1;
+        plannedMoves[id].collide = true; // 冷却期内不移动
+        return;
+      }
+
       if (!player.alive) {
         plannedMoves[id].collide = true;
         return;
@@ -188,7 +199,10 @@ export class DuelSnakeGame {
       const player = this.players[id];
 
       if (plan.collide) {
-        this.respawnPlayer(id);
+        // 只有真正碰撞时才重生，冷却期不触发重生
+        if (player.respawnTicksRemaining === 0) {
+          this.respawnPlayer(id);
+        }
         return;
       }
 
@@ -223,6 +237,7 @@ export class DuelSnakeGame {
       score: 0,
       alive: true,
       ready: false,
+      respawnTicksRemaining: 0,
     };
   }
 
@@ -310,6 +325,8 @@ export class DuelSnakeGame {
     this.players[player].direction = chosen.direction;
     this.players[player].pendingDirection = null;
     this.players[player].alive = true;
+    this.players[player].score = 0; // 死亡时重置分数
+    this.players[player].respawnTicksRemaining = 4; // 4帧冷却期（约480ms）
   }
 
   private clonePlayer(player: PlayerState): PlayerState {
