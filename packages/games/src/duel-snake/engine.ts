@@ -307,9 +307,12 @@ export class DuelSnakeGame {
           // 检查蛇头前方的下一步是否也安全（不会立刻碰撞）
           const delta = this.directionDelta(direction);
           const nextHead = { x: segments[0].x + delta.x, y: segments[0].y + delta.y };
-          const nextSafe = !occupiedSet.has(`${nextHead.x},${nextHead.y}`) &&
-            nextHead.x >= 0 && nextHead.x < this.width &&
-            nextHead.y >= 0 && nextHead.y < this.height;
+          const nextSafe =
+            !occupiedSet.has(`${nextHead.x},${nextHead.y}`) &&
+            nextHead.x >= 0 &&
+            nextHead.x < this.width &&
+            nextHead.y >= 0 &&
+            nextHead.y < this.height;
 
           if (nextSafe) {
             candidates.push({ x, y, direction });
@@ -337,9 +340,8 @@ export class DuelSnakeGame {
 
     // 如果仍然没有，强制使用第一个角落
     const fallback = { x: 2, y: 2, direction: 'right' as Direction };
-    const chosen = candidates.length > 0
-      ? candidates[Math.floor(this.random() * candidates.length) % candidates.length]
-      : fallback;
+    const chosen =
+      candidates.length > 0 ? candidates[Math.floor(this.random() * candidates.length) % candidates.length] : fallback;
 
     const segments = this.buildRespawnSegments(chosen.x, chosen.y, chosen.direction);
 

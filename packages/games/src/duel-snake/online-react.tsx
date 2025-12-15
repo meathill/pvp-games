@@ -5,30 +5,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Direction, DuelSnakeState, PlayerId } from './engine';
 import { DuelSnakeOnlineHost, DuelSnakeOnlineClient } from './online';
 import type { PeerRole } from '@pvp-games/shared';
-
-// Game rendering constants
-const CELL_SIZE = 18;
-const CELL_GAP = 2;
+import { PLAYER_COLORS } from './constants';
+import { GameBoard } from './game-board';
+import { HybridTransport, type ConnectionStatus, type TransportType } from './hybrid-transport';
 
 // Network constants
 const TICK_INTERVAL_MS = 120;
-
-export const PLAYER_COLORS: Record<PlayerId, { primary: string; stroke: string; light: string; text: string }> = {
-  p1: {
-    primary: '#34d399',
-    stroke: 'rgba(110, 231, 183, 0.7)',
-    light: '#ecfdf3',
-    text: '#065f46',
-  },
-  p2: {
-    primary: '#38bdf8',
-    stroke: 'rgba(125, 211, 252, 0.7)',
-    light: '#f0f9ff',
-    text: '#0ea5e9',
-  },
-};
-
-import { HybridTransport, type ConnectionStatus, type TransportType } from './hybrid-transport';
 
 export interface DuelSnakeOnlineProps {
   serverUrl: string;
@@ -250,8 +232,8 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
             <div className="text-center space-y-2">
               <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">贪吃蛇对战</h3>
               <p className="text-sm text-slate-600 dark:text-slate-300">
-                使用方向键或 WASD 控制你的蛇移动。吃到水果可以得分并让蛇变长。
-                先到达 {state?.targetScore ?? 10} 分的玩家获胜！
+                使用方向键或 WASD 控制你的蛇移动。吃到水果可以得分并让蛇变长。 先到达 {state?.targetScore ?? 10}{' '}
+                分的玩家获胜！
               </p>
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 撞到墙壁或对方的身体会导致死亡，死亡后会在随机位置重生，但分数会清零。
@@ -260,7 +242,8 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
 
             {/* 玩家颜色指示 */}
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 rounded-lg px-3 py-2"
+              <div
+                className="flex items-center gap-2 rounded-lg px-3 py-2"
                 style={{
                   backgroundColor: PLAYER_COLORS[myPlayer].light,
                   color: PLAYER_COLORS[myPlayer].text,
@@ -276,12 +259,18 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
 
             {/* 确认状态 */}
             <div className="flex items-center gap-4 text-sm">
-              <div className={`flex items-center gap-2 ${startConfirmed ? 'text-green-600 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}`}>
-                <span className={`inline-block h-2.5 w-2.5 rounded-full ${startConfirmed ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
+              <div
+                className={`flex items-center gap-2 ${startConfirmed ? 'text-green-600 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                <span
+                  className={`inline-block h-2.5 w-2.5 rounded-full ${startConfirmed ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                />
                 <span>你{startConfirmed ? '已准备' : '未准备'}</span>
               </div>
-              <div className={`flex items-center gap-2 ${opponentConfirmed ? 'text-green-600 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}`}>
-                <span className={`inline-block h-2.5 w-2.5 rounded-full ${opponentConfirmed ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
+              <div
+                className={`flex items-center gap-2 ${opponentConfirmed ? 'text-green-600 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                <span
+                  className={`inline-block h-2.5 w-2.5 rounded-full ${opponentConfirmed ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                />
                 <span>对手{opponentConfirmed ? '已准备' : '未准备'}</span>
               </div>
             </div>
@@ -319,11 +308,6 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
   }
 
   // Game board
-  const width = state.dimensions.width;
-  const height = state.dimensions.height;
-  const p1Cells = new Set(state.players.p1.segments.map((cell) => `${cell.x},${cell.y}`));
-  const p2Cells = new Set(state.players.p2.segments.map((cell) => `${cell.x},${cell.y}`));
-  const fruitKey = `${state.fruit.x},${state.fruit.y}`;
   const myPlayer = role === 'host' ? 'p1' : 'p2';
   const opponentPlayer = role === 'host' ? 'p2' : 'p1';
 
@@ -382,63 +366,7 @@ export function DuelSnakeOnline({ serverUrl, roomId, role, onLeave }: DuelSnakeO
       </div>
 
       {/* Game board */}
-      <div className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:ring-slate-700">
-        <div
-          className="grid rounded-xl bg-slate-100 p-2 shadow-inner ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-700"
-          style={{
-            gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
-            gridTemplateRows: `repeat(${height}, ${CELL_SIZE}px)`,
-            gap: `${CELL_GAP}px`,
-          }}>
-          {Array.from({ length: height * width }).map((_, index) => {
-            const x = index % width;
-            const y = Math.floor(index / width);
-            const key = `${x},${y}`;
-            const isP1 = p1Cells.has(key);
-            const isP2 = p2Cells.has(key);
-            const isFruit = key === fruitKey;
-
-            // 检查是否处于重生冷却期（闪烁效果）
-            const p1Respawning = state.players.p1.respawnTicksRemaining > 0;
-            const p2Respawning = state.players.p2.respawnTicksRemaining > 0;
-
-            const fillStyle = (() => {
-              if (isFruit) {
-                return { backgroundColor: '#f97316', boxShadow: '0 0 0 1px rgba(251, 146, 60, 0.7)' };
-              }
-              if (isP1) {
-                return {
-                  backgroundColor: PLAYER_COLORS.p1.primary,
-                  boxShadow: `0 0 0 1px ${PLAYER_COLORS.p1.stroke}`,
-                  // 重生冷却期闪烁效果
-                  ...(p1Respawning && {
-                    animation: 'respawn-blink 166ms ease-in-out infinite',
-                  }),
-                };
-              }
-              if (isP2) {
-                return {
-                  backgroundColor: PLAYER_COLORS.p2.primary,
-                  boxShadow: `0 0 0 1px ${PLAYER_COLORS.p2.stroke}`,
-                  // 重生冷却期闪烁效果
-                  ...(p2Respawning && {
-                    animation: 'respawn-blink 166ms ease-in-out infinite',
-                  }),
-                };
-              }
-              return undefined;
-            })();
-
-            return (
-              <div
-                key={key}
-                className="h-[18px] w-[18px] rounded-sm bg-slate-200 ring-1 ring-slate-200 transition-colors duration-75 dark:bg-slate-700 dark:ring-slate-600"
-                style={fillStyle}
-              />
-            );
-          })}
-        </div>
-      </div>
+      <GameBoard state={state} />
 
       {/* Controls hint */}
       <div className="text-center text-sm text-slate-500 dark:text-slate-400">使用方向键或 WASD 控制</div>

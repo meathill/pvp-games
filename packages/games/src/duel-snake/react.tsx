@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { Direction, DuelSnakeState, PlayerId } from './engine';
 import { DuelSnakeGame } from './engine';
+import { PLAYER_COLORS } from './constants';
+import { GameBoard } from './game-board';
 
 const KEY_BINDINGS: Record<string, { player: PlayerId; direction: Direction }> = {
   arrowup: { player: 'p1', direction: 'up' },
@@ -16,24 +18,7 @@ const KEY_BINDINGS: Record<string, { player: PlayerId; direction: Direction }> =
   d: { player: 'p2', direction: 'right' },
 };
 
-const CELL_SIZE = 18;
-const CELL_GAP = 2;
 const DEFAULT_TICK_MS = Math.round(140 / 0.75);
-
-export const PLAYER_COLORS: Record<PlayerId, { primary: string; stroke: string; light: string; text: string }> = {
-  p1: {
-    primary: '#34d399',
-    stroke: 'rgba(110, 231, 183, 0.7)',
-    light: '#ecfdf3',
-    text: '#065f46',
-  },
-  p2: {
-    primary: '#38bdf8',
-    stroke: 'rgba(125, 211, 252, 0.7)',
-    light: '#f0f9ff',
-    text: '#0ea5e9',
-  },
-};
 
 type ThemeMode = 'light' | 'dark' | 'system';
 type ClassValue = string | false | null | undefined;
@@ -159,12 +144,6 @@ export function DuelSnakeExperience({ initialSeed, initialTheme = 'light', tickI
     setState(next.getState());
   };
 
-  const width = state.dimensions.width;
-  const height = state.dimensions.height;
-  const p1Cells = new Set(state.players.p1.segments.map((cell) => `${cell.x},${cell.y}`));
-  const p2Cells = new Set(state.players.p2.segments.map((cell) => `${cell.x},${cell.y}`));
-  const fruitKey = `${state.fruit.x},${state.fruit.y}`;
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-slate-900 dark:text-slate-100">
       <div className="mx-auto flex max-w-5xl flex-col gap-6 px-6 py-8">
@@ -222,7 +201,7 @@ export function DuelSnakeExperience({ initialSeed, initialTheme = 'light', tickI
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3 rounded-xl bg-white/80 px-5 py-4 text-sm shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:ring-slate-700">
             <div
-              className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-100 dark:ring-emerald-800"
+              className="flex items-center gap-2 rounded-lg px-3 py-2"
               aria-label={`P1 分数: ${state.players.p1.score}`}
               title="P1 分数标记"
               style={{
@@ -231,7 +210,7 @@ export function DuelSnakeExperience({ initialSeed, initialTheme = 'light', tickI
                 boxShadow: `0 0 0 1px ${PLAYER_COLORS.p1.stroke}`,
               }}>
               <span
-                className="h-3 w-3 rounded-sm bg-emerald-400"
+                className="h-3 w-3 rounded-sm"
                 aria-hidden
                 style={{
                   backgroundColor: PLAYER_COLORS.p1.primary,
@@ -242,7 +221,7 @@ export function DuelSnakeExperience({ initialSeed, initialTheme = 'light', tickI
               <span className="font-semibold">P1 分数: {state.players.p1.score}</span>
             </div>
             <div
-              className="flex items-center gap-2 rounded-lg bg-sky-50 px-3 py-2 text-sky-700 ring-1 ring-sky-100 dark:bg-sky-900/40 dark:text-sky-100 dark:ring-sky-800"
+              className="flex items-center gap-2 rounded-lg px-3 py-2"
               aria-label={`P2 分数: ${state.players.p2.score}`}
               title="P2 分数标记"
               style={{
@@ -251,7 +230,7 @@ export function DuelSnakeExperience({ initialSeed, initialTheme = 'light', tickI
                 boxShadow: `0 0 0 1px ${PLAYER_COLORS.p2.stroke}`,
               }}>
               <span
-                className="h-3 w-3 rounded-sm bg-sky-400"
+                className="h-3 w-3 rounded-sm"
                 aria-hidden
                 style={{
                   backgroundColor: PLAYER_COLORS.p2.primary,
@@ -271,83 +250,10 @@ export function DuelSnakeExperience({ initialSeed, initialTheme = 'light', tickI
           </div>
         </section>
 
-        <section
-          className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:ring-slate-700"
-          aria-label="对战棋盘">
-          <div
-            data-testid="board-grid"
-            className={classNames(
-              'grid rounded-xl bg-slate-100 p-2 shadow-inner ring-1 ring-slate-200 transition-colors dark:bg-slate-900 dark:ring-slate-700',
-              'overflow-auto',
-            )}
-            style={{
-              gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
-              gridTemplateRows: `repeat(${height}, ${CELL_SIZE}px)`,
-              gap: `${CELL_GAP}px`,
-            }}>
-            {Array.from({ length: height * width }).map((_, index) => {
-              const x = index % width;
-              const y = Math.floor(index / width);
-              const key = `${x},${y}`;
-              const isP1 = p1Cells.has(key);
-              const isP2 = p2Cells.has(key);
-              const isFruit = key === fruitKey;
-
-              // 检查是否处于重生冷却期（闪烁效果）
-              const p1Respawning = state.players.p1.respawnTicksRemaining > 0;
-              const p2Respawning = state.players.p2.respawnTicksRemaining > 0;
-
-              const fillClass = (() => {
-                if (isFruit) return 'bg-orange-500 ring-1 ring-orange-400/70';
-                if (isP1) return 'bg-emerald-400 ring-1 ring-emerald-300/70';
-                if (isP2) return 'bg-sky-400 ring-1 ring-sky-300/70';
-                return 'bg-slate-200 ring-1 ring-slate-200 dark:bg-slate-700 dark:ring-slate-600';
-              })();
-
-              const fillStyle = (() => {
-                if (isP1) {
-                  return {
-                    backgroundColor: PLAYER_COLORS.p1.primary,
-                    boxShadow: `0 0 0 1px ${PLAYER_COLORS.p1.stroke}`,
-                    // 重生冷却期闪烁效果
-                    ...(p1Respawning && {
-                      animation: 'respawn-blink 166ms ease-in-out infinite',
-                    }),
-                  };
-                }
-                if (isP2) {
-                  return {
-                    backgroundColor: PLAYER_COLORS.p2.primary,
-                    boxShadow: `0 0 0 1px ${PLAYER_COLORS.p2.stroke}`,
-                    // 重生冷却期闪烁效果
-                    ...(p2Respawning && {
-                      animation: 'respawn-blink 166ms ease-in-out infinite',
-                    }),
-                  };
-                }
-                return undefined;
-              })();
-
-              const cellLabel = (() => {
-                if (isFruit) return `果实 (${x},${y})`;
-                if (isP1) return `P1 蛇身 (${x},${y})${p1Respawning ? ' (重生中)' : ''}`;
-                if (isP2) return `P2 蛇身 (${x},${y})${p2Respawning ? ' (重生中)' : ''}`;
-                return `空白 (${x},${y})`;
-              })();
-
-              return (
-                <div
-                  key={key}
-                  role="presentation"
-                  className={classNames('h-[18px] w-[18px] rounded-sm transition-colors duration-150', fillClass)}
-                  aria-label={`cell-${x}-${y}`}
-                  title={cellLabel}
-                  style={fillStyle}
-                />
-              );
-            })}
-          </div>
-        </section>
+        <GameBoard
+          state={state}
+          testId="board-grid"
+        />
       </div>
     </div>
   );
